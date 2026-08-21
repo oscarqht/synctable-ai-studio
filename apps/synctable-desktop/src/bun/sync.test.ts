@@ -1,8 +1,8 @@
 import { describe, expect, test, mock } from "bun:test";
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { BrowserSyncManager, addZenProfiles, canonicalizeTree, computeTreeHash } from "./sync";
+import { BrowserSyncManager, addChromeProfiles, addZenProfiles, canonicalizeTree, computeTreeHash } from "./sync";
 import type { BrowserProfile } from "./sync";
 import { SynctableDB } from "./db";
 import { KeychainService } from "./keychain";
@@ -57,6 +57,38 @@ describe("addZenProfiles", () => {
         displayName: "Zen Browser",
         profileName: "abc.default-release",
         sourcePath: join(profileDir, "sessionstore-backups", "recovery.jsonlz4"),
+      }]);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("addChromeProfiles", () => {
+  test("discovers Windows-style profiles and selects the newest live session", () => {
+    const root = mkdtempSync(join(tmpdir(), "synctable-chrome-user-data-"));
+    try {
+      const profileDir = join(root, "Profile 2");
+      const sessionsDir = join(profileDir, "Sessions");
+      mkdirSync(sessionsDir, { recursive: true });
+      const preferencesPath = join(profileDir, "Preferences");
+      const oldSession = join(sessionsDir, "Session_old");
+      const latestSession = join(sessionsDir, "Session_live");
+      writeFileSync(preferencesPath, "{}");
+      writeFileSync(oldSession, "old");
+      writeFileSync(latestSession, "latest");
+      utimesSync(oldSession, new Date("2026-01-01T00:00:00.000Z"), new Date("2026-01-01T00:00:00.000Z"));
+      utimesSync(latestSession, new Date("2026-01-02T00:00:00.000Z"), new Date("2026-01-02T00:00:00.000Z"));
+
+      const profiles: BrowserProfile[] = [];
+      addChromeProfiles(profiles, root);
+
+      expect(profiles).toEqual([{
+        browser: "chrome",
+        displayName: "Google Chrome",
+        profileName: "Profile 2",
+        sourcePath: preferencesPath,
+        sessionPath: latestSession,
       }]);
     } finally {
       rmSync(root, { recursive: true, force: true });

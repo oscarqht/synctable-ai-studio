@@ -15,6 +15,33 @@ export interface BrowserProfile {
   sessionPath?: string;
 }
 
+/** Adds each regular Chrome profile and its newest persisted live-session log. */
+export function addChromeProfiles(profiles: BrowserProfile[], chromeUserData: string): void {
+  if (!existsSync(chromeUserData)) return;
+
+  for (const entry of readdirSync(chromeUserData, { withFileTypes: true })) {
+    if (!entry.isDirectory() || (entry.name !== "Default" && !entry.name.startsWith("Profile "))) continue;
+    const profileDir = join(chromeUserData, entry.name);
+    const preferencesPath = join(profileDir, "Preferences");
+    if (!existsSync(preferencesPath)) continue;
+
+    const sessionsDir = join(profileDir, "Sessions");
+    const sessionFiles = existsSync(sessionsDir)
+      ? readdirSync(sessionsDir)
+          .filter((name) => name.startsWith("Session_"))
+          .map((name) => join(sessionsDir, name))
+          .sort((left, right) => statSync(right).mtimeMs - statSync(left).mtimeMs)
+      : [];
+    profiles.push({
+      browser: "chrome",
+      displayName: "Google Chrome",
+      profileName: entry.name,
+      sourcePath: preferencesPath,
+      sessionPath: sessionFiles[0],
+    });
+  }
+}
+
 /**
  * Zen keeps the live session in recovery.jsonlz4 while it is running. This is
  * the same layout on macOS and Windows; only the application-data root differs.
@@ -103,31 +130,7 @@ export class BrowserSyncManager {
       }
 
       // Chrome
-      const chromeUserData = join(appSupport, "Google", "Chrome");
-      if (existsSync(chromeUserData)) {
-        const entries = readdirSync(chromeUserData, { withFileTypes: true });
-        for (const entry of entries) {
-          if (entry.isDirectory() && (entry.name === "Default" || entry.name.startsWith("Profile "))) {
-            const prefPath = join(chromeUserData, entry.name, "Preferences");
-            if (existsSync(prefPath)) {
-              const sessionsDir = join(chromeUserData, entry.name, "Sessions");
-              const sessionFiles = existsSync(sessionsDir)
-                ? readdirSync(sessionsDir)
-                    .filter((name) => name.startsWith("Session_"))
-                    .map((name) => join(sessionsDir, name))
-                    .sort((left, right) => statSync(right).mtimeMs - statSync(left).mtimeMs)
-                : [];
-              profiles.push({
-                browser: "chrome",
-                displayName: "Google Chrome",
-                profileName: entry.name,
-                sourcePath: prefPath,
-                sessionPath: sessionFiles[0],
-              });
-            }
-          }
-        }
-      }
+      addChromeProfiles(profiles, join(appSupport, "Google", "Chrome"));
 
       // Vivaldi
       const vivaldiUserData = join(appSupport, "Vivaldi");
@@ -174,8 +177,10 @@ export class BrowserSyncManager {
         profiles.push({ browser: "dia", displayName: "Dia Browser", profileName: "Default", sourcePath: diaUserData });
       }
     } else if (this.osType === "windows") {
-      // Zen is Firefox-based, so its profile data lives in the roaming app-data
-      // directory on Windows rather than under the user's home directory.
+      // Chrome stores profiles under local app data, while Zen's Firefox-style
+      // profile directory is under roaming app data.
+      const localAppData = process.env.LOCALAPPDATA;
+      if (localAppData) addChromeProfiles(profiles, join(localAppData, "Google", "Chrome", "User Data"));
       const appData = process.env.APPDATA;
       if (appData) addZenProfiles(profiles, join(appData, "zen", "Profiles"));
     }
