@@ -206,8 +206,41 @@ export function App({ rpc }: AppProps) {
         style={{ WebkitAppRegion: "drag", appRegion: "drag" } as React.CSSProperties}
         className="bg-surface dark:bg-surface-dim border-b border-outline-variant/60 dark:border-outline px-container-padding py-2.5 flex items-center justify-between shrink-0 electrobun-webkit-app-region-drag titlebar-drag-region sticky top-0 z-50 gap-4"
       >
-        {/* Left: Brand logo + Synctable text, immediately followed by the Segmented Tab Switcher */}
-        <div className="flex items-center gap-3.5 pl-16 shrink-0">
+        {/* Left: macOS-style window controls, brand, and segmented tab switcher */}
+        <div className="flex items-center gap-3.5 shrink-0">
+          <div
+            style={{ WebkitAppRegion: "no-drag", appRegion: "no-drag" } as React.CSSProperties}
+            className="window-controls electrobun-webkit-app-region-no-drag titlebar-no-drag"
+            aria-label="Window controls"
+          >
+            <button
+              type="button"
+              className="window-control window-control-close"
+              onClick={() => rpc.request.closeWindow()}
+              aria-label="Close window"
+              title="Close"
+            >
+              <span aria-hidden="true">×</span>
+            </button>
+            <button
+              type="button"
+              className="window-control window-control-minimize"
+              onClick={() => rpc.request.minimizeWindow()}
+              aria-label="Minimize window"
+              title="Minimize"
+            >
+              <span aria-hidden="true">−</span>
+            </button>
+            <button
+              type="button"
+              className="window-control window-control-maximize"
+              onClick={() => rpc.request.toggleMaximizeWindow()}
+              aria-label="Maximize or restore window"
+              title="Maximize or restore"
+            >
+              <span aria-hidden="true">+</span>
+            </button>
+          </div>
           <div className="flex items-center gap-2.5 select-none">
             <div className="w-8 h-8 rounded-xl bg-surface-container-high border border-outline-variant/60 flex items-center justify-center shadow-xs overflow-hidden shrink-0 text-lg">
               <span role="img" aria-label="pizza" className="select-none leading-none">🍕</span>

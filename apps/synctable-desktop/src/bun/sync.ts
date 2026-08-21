@@ -7,6 +7,33 @@ import type { SynctableDB } from "./db";
 import { defaultKeychain, KeychainService } from "./keychain";
 import { defaultRaindropClient, RaindropClient } from "./raindrop";
 
+export interface BrowserProfile {
+  browser: string;
+  displayName: string;
+  profileName: string;
+  sourcePath: string;
+  sessionPath?: string;
+}
+
+/**
+ * Zen keeps the live session in recovery.jsonlz4 while it is running. This is
+ * the same layout on macOS and Windows; only the application-data root differs.
+ */
+export function addZenProfiles(profiles: BrowserProfile[], zenProfilesDir: string): void {
+  if (!existsSync(zenProfilesDir)) return;
+
+  for (const entry of readdirSync(zenProfilesDir, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    const profileDir = join(zenProfilesDir, entry.name);
+    const recoveryPath = join(profileDir, "sessionstore-backups", "recovery.jsonlz4");
+    const sessionPath = join(profileDir, "sessionstore.jsonlz4");
+    const sourcePath = existsSync(recoveryPath) ? recoveryPath : sessionPath;
+    if (existsSync(sourcePath)) {
+      profiles.push({ browser: "zen", displayName: "Zen Browser", profileName: entry.name, sourcePath });
+    }
+  }
+}
+
 export function canonicalizeTree(nodes: BrowserTreeNode[]): any {
   return nodes
     .map((node) => ({
@@ -62,9 +89,9 @@ export class BrowserSyncManager {
     return "linux";
   }
 
-  public getBrowserProfiles(): { browser: string; displayName: string; profileName: string; sourcePath: string; sessionPath?: string }[] {
+  public getBrowserProfiles(): BrowserProfile[] {
     const home = homedir();
-    const profiles: { browser: string; displayName: string; profileName: string; sourcePath: string; sessionPath?: string }[] = [];
+    const profiles: BrowserProfile[] = [];
 
     if (this.osType === "macos") {
       const appSupport = join(home, "Library", "Application Support");
@@ -120,23 +147,7 @@ export class BrowserSyncManager {
       }
 
       // Zen Browser
-      const zenProfilesDir = join(appSupport, "zen", "Profiles");
-      if (existsSync(zenProfilesDir)) {
-        const entries = readdirSync(zenProfilesDir, { withFileTypes: true });
-        for (const entry of entries) {
-          if (entry.isDirectory()) {
-            const profileDir = join(zenProfilesDir, entry.name);
-            // sessionstore.jsonlz4 is only present after Zen exits. While Zen is
-            // running, its current tabs, spaces, and folders are in recovery.jsonlz4.
-            const recoveryPath = join(profileDir, "sessionstore-backups", "recovery.jsonlz4");
-            const sessionPath = join(profileDir, "sessionstore.jsonlz4");
-            const sourcePath = existsSync(recoveryPath) ? recoveryPath : sessionPath;
-            if (existsSync(sourcePath)) {
-              profiles.push({ browser: "zen", displayName: "Zen Browser", profileName: entry.name, sourcePath });
-            }
-          }
-        }
-      }
+      addZenProfiles(profiles, join(appSupport, "zen", "Profiles"));
 
       // Firefox stores both the closed-session snapshot and its current live
       // recovery state in Mozilla's jsonlz4 format. Prefer recovery while it
@@ -162,6 +173,11 @@ export class BrowserSyncManager {
       if (existsSync(diaUserData)) {
         profiles.push({ browser: "dia", displayName: "Dia Browser", profileName: "Default", sourcePath: diaUserData });
       }
+    } else if (this.osType === "windows") {
+      // Zen is Firefox-based, so its profile data lives in the roaming app-data
+      // directory on Windows rather than under the user's home directory.
+      const appData = process.env.APPDATA;
+      if (appData) addZenProfiles(profiles, join(appData, "zen", "Profiles"));
     }
 
     return profiles;

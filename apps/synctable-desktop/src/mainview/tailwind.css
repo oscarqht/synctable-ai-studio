@@ -74,6 +74,64 @@ body {
   app-region: no-drag;
 }
 
+/* Custom title bar controls for the Windows desktop build. */
+.window-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px;
+}
+
+.window-control {
+  display: inline-flex;
+  width: 14px;
+  height: 14px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: 9999px;
+  color: rgba(0, 0, 0, 0.68);
+  font-family: Arial, sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  opacity: 1;
+  transition: filter 150ms ease, transform 150ms ease;
+}
+
+.window-control span {
+  position: relative;
+  top: -0.5px;
+}
+
+.window-control:hover {
+  filter: brightness(0.92);
+}
+
+.window-control:active {
+  transform: scale(0.9);
+}
+
+.window-control:focus-visible {
+  outline: 2px solid var(--zen-primary-color);
+  outline-offset: 2px;
+}
+
+.window-control-close {
+  background: #ff5f57;
+  border-color: #e0443e;
+}
+
+.window-control-minimize {
+  background: #febc2e;
+  border-color: #dea123;
+}
+
+.window-control-maximize {
+  background: #28c840;
+  border-color: #1ca634;
+}
+
 /* Zen 3D Folder Flap Animations */
 .zen-folder-icon-svg .back,
 .zen-folder-icon-svg .front,
