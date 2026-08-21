@@ -4,7 +4,7 @@
   "description": "Cross-browser tree backup and workspace synchronization utility (Desktop App)",
   "type": "module",
   "scripts": {
-    "build:native": "sh ./scripts/build-dia-db-reader.sh",
+    "build:native": "bun run ./scripts/build-native.ts",
     "build:css": "tailwindcss -i ./src/mainview/tailwind.css -o ./src/mainview/style.css --minify",
     "predev": "bun run build:native && bun run build:css",
     "dev": "electrobun dev",

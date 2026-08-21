@@ -1,4 +1,12 @@
 import type { ElectrobunConfig } from "electrobun/bun";
+import { platform } from "node:os";
+
+const macNativeHelpers: Record<string, string> = platform() === "darwin"
+  ? {
+      "src/native/bin/dia-db-reader": "bin/dia-db-reader",
+      "src/native/bin/sync-lifecycle-monitor": "bin/sync-lifecycle-monitor",
+    }
+  : {};
 
 export default {
   app: {
@@ -28,8 +36,7 @@ export default {
       "src/mainview/browser-zen.png": "views/mainview/browser-zen.png",
       "../../docs/poster.jpeg": "views/mainview/assets/poster.jpeg",
       "../../docs/logo.png": "views/mainview/assets/logo.png",
-      "src/native/bin/dia-db-reader": "bin/dia-db-reader",
-      "src/native/bin/sync-lifecycle-monitor": "bin/sync-lifecycle-monitor",
+      ...macNativeHelpers,
     },
     mac: {
       defaultRenderer: "native",

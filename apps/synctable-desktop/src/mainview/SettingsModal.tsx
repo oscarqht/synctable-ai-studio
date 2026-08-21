@@ -129,7 +129,7 @@ export function SettingsModal({
               >
                 Raindrop.io Settings → Integrations
               </a>
-              . Securely stored in macOS Keychain.
+              . Securely stored using your operating system's credential protection.
             </p>
           </div>
 

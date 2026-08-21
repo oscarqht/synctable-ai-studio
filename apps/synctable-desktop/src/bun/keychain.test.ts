@@ -4,17 +4,19 @@ import { platform } from "node:os";
 
 describe("KeychainService", () => {
   const isMac = platform() === "darwin";
+  const isWindows = platform() === "win32";
+  const supportsSecureStorage = isMac || isWindows;
   const testService = new KeychainService("Synctable-UnitTest");
   const testAccount = "unit_test_token";
 
   afterAll(() => {
-    if (isMac) {
+    if (supportsSecureStorage) {
       testService.deleteSecret(testAccount);
     }
   });
 
   it("stores, retrieves, updates, and deletes secret in keychain", () => {
-    if (!isMac) return;
+    if (!supportsSecureStorage) return;
 
     // Clean initial state
     testService.deleteSecret(testAccount);
@@ -37,7 +39,7 @@ describe("KeychainService", () => {
     expect(testService.getSecret(testAccount)).toBe("to-delete");
     testService.deleteSecret(testAccount);
     expect(testService.getSecret(testAccount)).toBe("");
-  });
+  }, { timeout: 30_000 });
 
   it("falls back to RAINDROP_TOKEN env var when keychain token is not set", () => {
     const origEnv = process.env.RAINDROP_TOKEN;
