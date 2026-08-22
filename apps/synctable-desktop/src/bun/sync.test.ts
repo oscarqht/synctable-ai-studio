@@ -89,10 +89,12 @@ describe("addChromeProfiles", () => {
         profileName: "Profile 2",
         sourcePath: preferencesPath,
         sessionPath: latestSession,
+        candidateSessionPaths: [latestSession, oldSession],
       }]);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
+
   });
 });
 

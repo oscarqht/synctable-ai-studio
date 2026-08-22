@@ -8,6 +8,14 @@ const macNativeHelpers: Record<string, string> = platform() === "darwin"
     }
   : {};
 
+const winNativeHelpers: Record<string, string> = platform() === "win32"
+  ? {
+      "src/native/bin/win-file-reader.exe": "bin/win-file-reader.exe",
+      "src/native/bin/win-live-reader.exe": "bin/win-live-reader.exe",
+    }
+  : {};
+
+
 export default {
   app: {
     name: "Synctable",
@@ -37,7 +45,9 @@ export default {
       "../../docs/poster.jpeg": "views/mainview/assets/poster.jpeg",
       "../../docs/logo.png": "views/mainview/assets/logo.png",
       ...macNativeHelpers,
+      ...winNativeHelpers,
     },
+
     mac: {
       defaultRenderer: "native",
       icons: "icon.iconset",
