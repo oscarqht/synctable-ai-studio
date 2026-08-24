@@ -135,10 +135,10 @@ export function MultiDeviceCardsPortal({
         </span>
         <div className="text-center space-y-1">
           <p className="font-title-md text-title-md font-bold text-on-surface">
-            Locating Synctable collection & downloading snapshots...
+            Loading snapshots...
           </p>
           <p className="font-body-sm text-body-sm text-on-surface-variant">
-            Querying Raindrop.io REST API and parsing JSON workspace files
+            Fetching data from Raindrop.io
           </p>
         </div>
       </div>
