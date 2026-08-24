@@ -80,6 +80,25 @@ export function formatRelativeTime(dateString: string): string {
 }
 
 /**
+ * Recursively find the most recent timestamp (lastUpdateTime or snapshot_time) for a node and all its descendants.
+ */
+export function getNodeLastUpdateTime(node?: BrowserTreeNode | null): string {
+  if (!node) return "";
+  let latest = node.lastUpdateTime || node.snapshot_time || "";
+  const walk = (n: BrowserTreeNode) => {
+    const time = n.lastUpdateTime || n.snapshot_time || "";
+    if (time && (!latest || time > latest)) latest = time;
+    if (n.children && Array.isArray(n.children)) {
+      n.children.forEach(walk);
+    }
+  };
+  if (node.children && Array.isArray(node.children)) {
+    node.children.forEach(walk);
+  }
+  return latest;
+}
+
+/**
  * Checks whether a hex color is dark enough to require light text
  */
 export function isDarkColor(hexColor?: string | null): boolean {
