@@ -1,0 +1,17 @@
+{
+  "name": "synctable-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=synctable-web",
+    "build": "npm run build --workspace=synctable-web",
+    "start": "npm run start --workspace=synctable-web",
+    "lint": "npm run lint --workspace=synctable-web",
+    "typecheck": "npm run typecheck --workspace=synctable-web"
+  }
+}

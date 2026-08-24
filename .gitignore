@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+
+# Electrobun Build outputs
+build/
+artifacts/
+
+# Next.js Build outputs
+.next/
+out/
+
+# Local cache & DB
+.browser_sync_cache/
+*.sqlite
+*.sqlite-journal
+
+# TypeScript cache
+*.tsbuildinfo
+next-env.d.ts
+
+# OS files
+.DS_Store
+Thumbs.db
+src/native/bin/
+apps/synctable-desktop/src/native/bin/
+
+.env
+.env.local
