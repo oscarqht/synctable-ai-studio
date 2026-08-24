@@ -8,6 +8,7 @@
     "apps/*",
     "packages/*"
   ],
+
   "scripts": {
     "dev:desktop": "bun --filter synctable-desktop dev",
     "dev:web": "bun --filter synctable-web dev",
@@ -15,8 +16,5 @@
     "build:web": "bun --filter synctable-web build",
     "test": "bun test",
     "typecheck": "bun --filter '*' typecheck"
-  },
-  "dependencies": {
-    "lz4js": "^0.2.0"
   }
 }
