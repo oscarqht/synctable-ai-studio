@@ -160,6 +160,12 @@ export function TreeNodeItem({
   const [expanded, setExpanded] = useState<boolean>(defaultExpanded);
   const [copied, setCopied] = useState(false);
 
+  const nodeUrls = React.useMemo(() => {
+    if (!node) return [];
+    if (node.url) return [node.url];
+    return getAllTabUrls(node);
+  }, [node]);
+
   React.useEffect(() => {
     setExpanded(defaultExpanded);
   }, [defaultExpanded]);
@@ -220,11 +226,6 @@ export function TreeNodeItem({
   const browserBadge = getBrowserBadge(node.browser_name);
   const favicon = getFaviconUrl(node.url);
   const domain = getDomain(node.url);
-
-  const nodeUrls = React.useMemo(() => {
-    if (node.url) return [node.url];
-    return getAllTabUrls(node);
-  }, [node]);
 
   const handleCopyUrl = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -375,6 +376,9 @@ export function TreeNodeItem({
                 src={favicon}
                 alt=""
                 className="w-3.5 h-3.5 object-contain rounded shrink-0 mr-0.5"
+                onError={(e) => {
+                  (e.target as HTMLElement).style.display = "none";
+                }}
               />
             ) : null}
             <span

@@ -1,18 +1,17 @@
 "use client";
 import { usePersistentCollapse } from "../hooks/usePersistentCollapse";
 
-import React, { useMemo } from "react";
-import type { BrowserTreeNode } from "../types";
-import { useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect } from "react";
+import type { BrowserTreeNode, WorkspaceItem } from "../types";
 import {
   countTabs,
   countWorkspaces,
   extractWorkspacesFromRoot,
   formatRelativeTime,
+  getBrowserIconPath,
+  getNodeLastUpdateTime,
 } from "../utils/treeUtils";
 import { ZenSidebarView } from "./zen/ZenSidebarView";
-
-
 
 export interface DeviceCardProps {
   deviceName: string;
@@ -42,9 +41,85 @@ function BrowserSection({
   onOpenExternal?: (url: string) => void;
 }) {
   const collapseKey = `synctable_collapse_browser_${deviceName}_${browserName}`;
-  const { isCollapsed, toggle, mounted } = usePersistentCollapse(collapseKey, false);
+  const { isCollapsed: isSectionCollapsed, toggle: toggleSection, mounted: sectionMounted } = usePersistentCollapse(collapseKey, false);
 
-  const workspaces = browserTrees.flatMap(extractWorkspacesFromRoot);
+  const workspaces = useMemo(() => {
+    return browserTrees.flatMap(extractWorkspacesFromRoot);
+  }, [browserTrees]);
+
+  const [workspaceCollapseMap, setWorkspaceCollapseMap] = useState<Record<string, boolean>>({});
+  const [workspacesMounted, setWorkspacesMounted] = useState(false);
+
+  useEffect(() => {
+    setWorkspacesMounted(true);
+    const initialMap: Record<string, boolean> = {};
+    for (const ws of workspaces) {
+      const key = `synctable_collapse_workspace_${ws.id}`;
+      try {
+        const stored = localStorage.getItem(key);
+        if (stored !== null) {
+          initialMap[ws.id] = stored === "true";
+        }
+      } catch {
+        // Ignore localStorage read errors
+      }
+    }
+    setWorkspaceCollapseMap(initialMap);
+  }, [workspaces]);
+
+  const toggleWorkspace = (id: string) => {
+    setWorkspaceCollapseMap((prev) => {
+      const currentState = prev[id] ?? false;
+      const nextState = !currentState;
+      const key = `synctable_collapse_workspace_${id}`;
+      try {
+        localStorage.setItem(key, String(nextState));
+      } catch (e) {
+        console.warn("Failed to save workspace collapse to localStorage", e);
+      }
+      return {
+        ...prev,
+        [id]: nextState,
+      };
+    });
+  };
+
+  const originalIndexMap = useMemo(() => {
+    const map = new Map<string, number>();
+    workspaces.forEach((ws, idx) => {
+      map.set(ws.id, idx);
+    });
+    return map;
+  }, [workspaces]);
+
+  const { expandedWorkspaces, collapsedWorkspaces } = useMemo(() => {
+    const expanded: WorkspaceItem[] = [];
+    const collapsed: WorkspaceItem[] = [];
+
+    for (const ws of workspaces) {
+      const isWsCollapsed = workspacesMounted ? (workspaceCollapseMap[ws.id] ?? false) : false;
+      if (isWsCollapsed) {
+        collapsed.push(ws);
+      } else {
+        expanded.push(ws);
+      }
+    }
+
+    // Sort collapsed browser cards according to their last update time (DESC)
+    collapsed.sort((a, b) => {
+      const timeA = getNodeLastUpdateTime(a.node);
+      const timeB = getNodeLastUpdateTime(b.node);
+      if (timeA && timeB) {
+        return timeB.localeCompare(timeA);
+      }
+      if (timeA) return -1;
+      if (timeB) return 1;
+      return a.workspaceTitle.localeCompare(b.workspaceTitle);
+    });
+
+    return { expandedWorkspaces: expanded, collapsedWorkspaces: collapsed };
+  }, [workspaces, workspaceCollapseMap, workspacesMounted]);
+
   if (workspaces.length === 0) return null;
 
   return (
@@ -52,16 +127,16 @@ function BrowserSection({
       {/* Section Title */}
       <div
         className="flex justify-between items-end border-b border-surface-container-high pb-4 cursor-pointer select-none group"
-        onClick={toggle}
+        onClick={toggleSection}
       >
         <div className="flex items-center gap-2">
           <span
-            className={`material-symbols-outlined text-on-surface-variant transition-transform duration-200 ${!isCollapsed ? 'rotate-90' : ''}`}
+            className={`material-symbols-outlined text-on-surface-variant transition-transform duration-200 ${!isSectionCollapsed ? 'rotate-90' : ''}`}
           >
             chevron_right
           </span>
           <img
-            src={`/browser-${browserName.toLowerCase()}.png`}
+            src={getBrowserIconPath(browserName)}
             alt={browserName}
             className="w-5 h-5 object-contain"
             onError={(e) => {
@@ -81,17 +156,37 @@ function BrowserSection({
       </div>
 
       {/* Workspace Cards Grid */}
-      {(!mounted || !isCollapsed) && (
+      {(!sectionMounted || !isSectionCollapsed) && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 min-[1500px]:grid-cols-5 2xl:grid-cols-5 gap-gutter items-start">
-          {workspaces.map((wsItem, wsIndex) => (
+          {/* Expanded browser cards */}
+          {expandedWorkspaces.map((wsItem) => (
             <ZenSidebarView
               key={wsItem.id}
               workspaceItem={wsItem}
-              cardIndex={wsIndex}
+              cardIndex={originalIndexMap.get(wsItem.id) ?? 0}
               searchQuery={searchQuery}
               onOpenExternal={onOpenExternal}
+              isCollapsed={false}
+              onToggleCollapse={() => toggleWorkspace(wsItem.id)}
             />
           ))}
+
+          {/* Stacked Collapsed Browser Cards Column (same width as normal browser card) */}
+          {collapsedWorkspaces.length > 0 && (
+            <div className="flex flex-col gap-3 min-w-0 w-full">
+              {collapsedWorkspaces.map((wsItem) => (
+                <ZenSidebarView
+                  key={wsItem.id}
+                  workspaceItem={wsItem}
+                  cardIndex={originalIndexMap.get(wsItem.id) ?? 0}
+                  searchQuery={searchQuery}
+                  onOpenExternal={onOpenExternal}
+                  isCollapsed={true}
+                  onToggleCollapse={() => toggleWorkspace(wsItem.id)}
+                />
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

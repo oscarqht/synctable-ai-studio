@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAuthorizationUrl, STATE_COOKIE } from "@/lib/raindrop";
+import { getAuthorizationUrl, STATE_COOKIE, getAuthCookieOptions } from "@/lib/raindrop";
 import crypto from "crypto";
 
 export const dynamic = "force-dynamic";
@@ -27,13 +27,7 @@ export async function GET(request: NextRequest) {
 
   const response = NextResponse.redirect(authUrl);
 
-  response.cookies.set(STATE_COOKIE, state, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: 60 * 10, // 10 minutes
-  });
+  response.cookies.set(STATE_COOKIE, state, getAuthCookieOptions(60 * 10));
 
   return response;
 }

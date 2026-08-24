@@ -6,6 +6,17 @@ export const ACCESS_TOKEN_COOKIE = "raindrop_access_token";
 export const REFRESH_TOKEN_COOKIE = "raindrop_refresh_token";
 export const STATE_COOKIE = "raindrop_oauth_state";
 
+export function getAuthCookieOptions(maxAge: number = 60 * 60 * 24 * 365) {
+  const isProd = process.env.NODE_ENV === "production";
+  return {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: (isProd ? "none" : "lax") as "none" | "lax",
+    path: "/",
+    maxAge,
+  };
+}
+
 export interface RaindropRawUser {
   _id: number;
   fullName: string;
@@ -106,40 +117,51 @@ export async function exchangeCodeForTokens(
 export async function fetchRaindropUser(
   token: string
 ): Promise<RaindropUserProfile | null> {
-  const res = await fetch(`${RAINDROP_API_BASE}/user`, {
-    method: "GET",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      Accept: "application/json",
-    },
-    cache: "no-store",
-  });
+  const cleanToken = token.replace(/^Bearer\s+/i, "").trim();
+  if (!cleanToken) return null;
 
-  if (!res.ok) {
+  try {
+    const res = await fetch(`${RAINDROP_API_BASE}/user`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${cleanToken}`,
+        Accept: "application/json",
+      },
+      cache: "no-store",
+    });
+
+    if (!res.ok) {
+      const errorText = await res.text().catch(() => "");
+      console.warn(`[Raindrop] /user returned ${res.status}: ${errorText}`);
+      return null;
+    }
+
+    const data = (await res.json()) as {
+      result?: boolean;
+      user?: RaindropRawUser;
+      item?: RaindropRawUser;
+    };
+
+    const user = data.user || data.item;
+    if (!user) {
+      return null;
+    }
+
+    const avatarUrl = user.email_MD5
+      ? `https://www.gravatar.com/avatar/${user.email_MD5}?d=mp`
+      : user.avatar;
+
+    return {
+      id: user._id || 1,
+      name: user.fullName || user.email || "Raindrop User",
+      email: user.email,
+      avatarUrl,
+      isPro: Boolean(user.pro),
+    };
+  } catch (err) {
+    console.error("[Raindrop] Error fetching user profile:", err);
     return null;
   }
-
-  const data = (await res.json()) as {
-    result?: boolean;
-    user?: RaindropRawUser;
-  };
-
-  if (!data.user) {
-    return null;
-  }
-
-  const user = data.user;
-  const avatarUrl = user.email_MD5
-    ? `https://www.gravatar.com/avatar/${user.email_MD5}?d=mp`
-    : user.avatar;
-
-  return {
-    id: user._id,
-    name: user.fullName || "Raindrop User",
-    email: user.email,
-    avatarUrl,
-    isPro: Boolean(user.pro),
-  };
 }
 
 export const RAINDROP_COLLECTION_NAME = "Synctable";

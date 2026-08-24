@@ -12,17 +12,62 @@ export default function Home() {
   const [authLoading, setAuthLoading] = useState(true);
   const [loggingOut, setLoggingOut] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [avatarError, setAvatarError] = useState(false);
 
   // Sync data state
   const [syncData, setSyncData] = useState<SynctableSyncResponse | null>(null);
   const [syncLoading, setSyncLoading] = useState(false);
 
-  const [tokenInput, setTokenInput] = useState<string>("" );
+  const [tokenInput, setTokenInput] = useState<string>("");
   const [tokenLoading, setTokenLoading] = useState<boolean>(false);
+
+  // Helper to get active token
+  const getStoredToken = () => {
+    try {
+      return localStorage.getItem("synctable_raindrop_token") || "";
+    } catch {
+      return "";
+    }
+  };
+
+  // Fetch Synctable Root Collection & Device Files
+  const fetchSyncData = useCallback(async (overrideToken?: string) => {
+    setSyncLoading(true);
+    try {
+      const activeToken = overrideToken || getStoredToken();
+      const headers: Record<string, string> = {};
+      if (activeToken) {
+        headers["Authorization"] = `Bearer ${activeToken}`;
+      }
+
+      const res = await fetch("/api/sync/tree", { headers });
+      if (res.ok) {
+        const data = (await res.json()) as SynctableSyncResponse;
+        setSyncData(data);
+        setErrorMessage(null);
+      } else {
+        const errorData = await res.json().catch(() => ({}));
+        if (res.status === 401) {
+          setUser(null);
+          try {
+            localStorage.removeItem("synctable_raindrop_token");
+          } catch {}
+        }
+        setErrorMessage(
+          errorData.error || "Failed to load Synctable data from Raindrop."
+        );
+      }
+    } catch (err: any) {
+      console.error("Error fetching Synctable data:", err);
+      setErrorMessage(err.message || "Failed to load Synctable data");
+    } finally {
+      setSyncLoading(false);
+    }
+  }, []);
 
   const handleTokenLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    const token = tokenInput.trim();
+    const token = tokenInput.replace(/^Bearer\s+/i, "").trim();
     if (!token) return;
 
     setTokenLoading(true);
@@ -36,7 +81,13 @@ export default function Home() {
 
       const data = await res.json();
       if (res.ok && data.user) {
+        try {
+          localStorage.setItem("synctable_raindrop_token", token);
+        } catch {}
         setUser(data.user);
+        setAvatarError(false);
+        // Immediately fetch sync data with verified token
+        fetchSyncData(token);
       } else {
         setErrorMessage(data.error || "Failed to authenticate with token.");
       }
@@ -47,7 +98,7 @@ export default function Home() {
     }
   };
 
-  // Load User Auth
+  // Load User Auth on Mount
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const error = urlParams.get("error");
@@ -58,10 +109,29 @@ export default function Home() {
 
     async function checkAuth() {
       try {
-        const res = await fetch("/api/auth/me");
+        const activeToken = getStoredToken();
+        const headers: Record<string, string> = {};
+        if (activeToken) {
+          headers["Authorization"] = `Bearer ${activeToken}`;
+        }
+
+        const res = await fetch("/api/auth/me", { headers });
         if (res.ok) {
           const data = await res.json();
-          setUser(data.user);
+          if (data.user) {
+            setUser(data.user);
+            setAvatarError(false);
+            if (data.token) {
+              try {
+                localStorage.setItem("synctable_raindrop_token", data.token);
+              } catch {}
+            }
+          } else if (activeToken) {
+            // Token was invalid
+            try {
+              localStorage.removeItem("synctable_raindrop_token");
+            } catch {}
+          }
         }
       } catch (err) {
         console.error("Failed to check auth status:", err);
@@ -72,32 +142,6 @@ export default function Home() {
 
     checkAuth();
   }, []);
-
-  // Fetch Synctable Root Collection & Device Files
-  const fetchSyncData = useCallback(async () => {
-    if (!user) return;
-    setSyncLoading(true);
-    try {
-      const res = await fetch("/api/sync/tree");
-      if (res.ok) {
-        const data = (await res.json()) as SynctableSyncResponse;
-        setSyncData(data);
-      } else {
-        const errorData = await res.json().catch(() => ({}));
-        if (res.status === 401) {
-          setUser(null);
-        }
-        setErrorMessage(
-          errorData.error || "Failed to load Synctable data from Raindrop"
-        );
-      }
-    } catch (err: any) {
-      console.error("Error fetching Synctable data:", err);
-      setErrorMessage(err.message || "Failed to load Synctable data");
-    } finally {
-      setSyncLoading(false);
-    }
-  }, [user]);
 
   // Initial load and periodic auto-refresh every one minute
   useEffect(() => {
@@ -116,6 +160,9 @@ export default function Home() {
   const handleLogout = async () => {
     setLoggingOut(true);
     try {
+      try {
+        localStorage.removeItem("synctable_raindrop_token");
+      } catch {}
       await fetch("/api/auth/logout", { method: "POST" });
       setUser(null);
       setSyncData(null);
@@ -156,7 +203,7 @@ export default function Home() {
             ) : user ? (
               <>
                 <button
-                  onClick={fetchSyncData}
+                  onClick={() => fetchSyncData()}
                   disabled={syncLoading}
                   className="hidden md:flex items-center gap-2 px-4 py-2 rounded-full bg-surface-container-low text-on-surface-variant hover:bg-surface-container-high transition-colors duration-200 cursor-pointer"
                   title="Sync status and refresh"
@@ -172,11 +219,12 @@ export default function Home() {
                 </button>
 
                 <div className="hidden md:flex items-center gap-3 px-4 py-1.5 rounded-full border border-outline-variant">
-                  {user.avatarUrl ? (
+                  {user.avatarUrl && !avatarError ? (
                     <img
                       className="w-8 h-8 rounded-full object-cover"
                       src={user.avatarUrl}
                       alt={user.name}
+                      onError={() => setAvatarError(true)}
                     />
                   ) : (
                     <div className="w-8 h-8 rounded-full bg-primary-container text-on-primary-container font-bold text-xs flex items-center justify-center">

@@ -23,6 +23,8 @@ export interface ZenSidebarViewProps {
   alwaysShowActions?: boolean;
   cardIndex?: number;
   onOpenExternal?: (url: string) => void;
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
 export function ZenSidebarView({
@@ -33,6 +35,8 @@ export function ZenSidebarView({
   alwaysShowActions = false,
   cardIndex = 0,
   onOpenExternal,
+  isCollapsed: controlledIsCollapsed,
+  onToggleCollapse,
 }: ZenSidebarViewProps) {
   const [internalSearch, setInternalSearch] = useState("");
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
@@ -64,7 +68,18 @@ export function ZenSidebarView({
   }, [workspaceItem, rawRootNode]);
 
   const collapseKey = `synctable_collapse_workspace_${currentWorkspaceItem?.id || 'unknown'}`;
-  const { isCollapsed, toggle, mounted } = usePersistentCollapse(collapseKey, false);
+  const internalCollapse = usePersistentCollapse(collapseKey, false);
+
+  const isControlled = controlledIsCollapsed !== undefined;
+  const isCollapsed = isControlled ? controlledIsCollapsed : internalCollapse.isCollapsed;
+  const mounted = isControlled ? true : internalCollapse.mounted;
+  const toggle = () => {
+    if (onToggleCollapse) {
+      onToggleCollapse();
+    } else {
+      internalCollapse.toggle();
+    }
+  };
 
   const workspaceNode = currentWorkspaceItem?.node;
 
@@ -117,8 +132,18 @@ export function ZenSidebarView({
       "secondary",
       "tertiary",
     ];
-    return archetypes[cardIndex % archetypes.length];
-  }, [cardIndex]);
+    if (typeof cardIndex === "number") {
+      const positiveIndex = ((cardIndex % archetypes.length) + archetypes.length) % archetypes.length;
+      return archetypes[positiveIndex];
+    }
+    const str = currentWorkspaceItem?.id || currentWorkspaceItem?.workspaceTitle || "default";
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      hash = (hash << 5) - hash + str.charCodeAt(i);
+      hash |= 0;
+    }
+    return archetypes[Math.abs(hash) % archetypes.length];
+  }, [cardIndex, currentWorkspaceItem?.id, currentWorkspaceItem?.workspaceTitle]);
 
   const isDark = Boolean(
     hasExplicitColor
@@ -236,8 +261,10 @@ export function ZenSidebarView({
   let searchInputClasses = "";
   let headerActionClasses = "";
 
+  const padClasses = isCollapsed ? "p-3.5 sm:p-4 gap-0" : "p-6 gap-6";
+
   if (hasExplicitColor) {
-    containerClasses = `rounded-lg p-6 flex flex-col gap-6 shadow-sm hover:shadow-md transition-all duration-300 border ${
+    containerClasses = `rounded-lg ${padClasses} flex flex-col shadow-sm hover:shadow-md transition-all duration-300 border ${
       isDark
         ? "border-white/20 text-white"
         : "border-black/[0.08] dark:border-white/10 text-on-surface"
@@ -253,21 +280,21 @@ export function ZenSidebarView({
       : "text-on-surface-variant hover:text-on-surface";
   } else if (archetype === "primary") {
     containerClasses =
-      "bg-primary-container text-on-primary-container rounded-lg p-6 flex flex-col gap-6 shadow-sm hover:-translate-y-1 transition-transform duration-300";
+      `bg-primary-container text-on-primary-container rounded-lg ${padClasses} flex flex-col shadow-sm hover:-translate-y-0.5 transition-transform duration-300`;
     badgeClasses = "bg-white/30 text-on-primary-container";
     searchInputClasses =
       "bg-white/20 text-on-primary-container placeholder:text-on-primary-container/70 focus:ring-white";
     headerActionClasses = "opacity-80 hover:opacity-100";
   } else if (archetype === "secondary") {
     containerClasses =
-      "bg-secondary-container text-on-secondary-container rounded-lg p-6 flex flex-col gap-6 shadow-sm hover:-translate-y-1 transition-transform duration-300";
+      `bg-secondary-container text-on-secondary-container rounded-lg ${padClasses} flex flex-col shadow-sm hover:-translate-y-0.5 transition-transform duration-300`;
     badgeClasses = "bg-white/40 text-on-secondary-container";
     searchInputClasses =
       "bg-white/40 text-on-secondary-container placeholder:text-on-secondary-container/70 focus:ring-white";
     headerActionClasses = "opacity-80 hover:opacity-100";
   } else if (archetype === "tertiary") {
     containerClasses =
-      "bg-tertiary-container text-on-tertiary-container rounded-lg p-6 flex flex-col gap-6 shadow-sm hover:-translate-y-1 transition-transform duration-300";
+      `bg-tertiary-container text-on-tertiary-container rounded-lg ${padClasses} flex flex-col shadow-sm hover:-translate-y-0.5 transition-transform duration-300`;
     badgeClasses = "bg-white/30 text-on-tertiary-container";
     searchInputClasses =
       "bg-white/20 text-on-tertiary-container placeholder:text-on-tertiary-container/70 focus:ring-white";
@@ -275,7 +302,7 @@ export function ZenSidebarView({
   } else {
     // Neutral archetype
     containerClasses =
-      "bg-surface-container-lowest border border-surface-variant text-on-surface rounded-lg p-6 flex flex-col gap-6 shadow-sm hover:shadow-md transition-shadow duration-300";
+      `bg-surface-container-lowest border border-surface-variant text-on-surface rounded-lg ${padClasses} flex flex-col shadow-sm hover:shadow-md transition-shadow duration-300`;
     badgeClasses = "bg-surface-container text-on-surface-variant";
     searchInputClasses =
       "bg-surface-container-low text-on-surface placeholder:text-on-surface-variant focus:ring-outline";

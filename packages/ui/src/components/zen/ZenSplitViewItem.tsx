@@ -89,7 +89,14 @@ export function ZenSplitViewItem({
                 className="w-full h-full rounded bg-surface-container-high flex items-center justify-center overflow-hidden"
               >
                 {fav ? (
-                  <img src={fav} alt="" className="w-2.5 h-2.5 object-contain" />
+                  <img
+                    src={fav}
+                    alt=""
+                    className="w-2.5 h-2.5 object-contain"
+                    onError={(e) => {
+                      (e.target as HTMLElement).style.display = "none";
+                    }}
+                  />
                 ) : (
                   <span className="text-[8px] font-bold text-on-surface-variant">
                     {idx + 1}
@@ -147,6 +154,9 @@ export function ZenSplitViewItem({
                       src={favicon}
                       alt=""
                       className="w-4 h-4 object-contain rounded shrink-0"
+                      onError={(e) => {
+                        (e.target as HTMLElement).style.display = "none";
+                      }}
                     />
                   ) : (
                     <span className="material-symbols-outlined text-[14px] leading-none">public</span>
