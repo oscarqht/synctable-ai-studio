@@ -4,6 +4,7 @@ import {
   findSynctableCollection,
   fetchCollectionRaindrops,
   fetchRaindropFileContent,
+  getRaindropTokenFromEnv,
 } from "@/lib/raindrop";
 import type {
   BrowserTreeNode,
@@ -128,7 +129,9 @@ export async function GET(request: NextRequest) {
   const authHeader = request.headers.get("Authorization")?.replace(/^Bearer\s+/i, "")?.trim();
   const queryToken = request.nextUrl.searchParams.get("token")?.trim();
   const cookieToken = request.cookies.get(ACCESS_TOKEN_COOKIE)?.value?.trim();
-  const token = authHeader || queryToken || cookieToken;
+  const envToken = getRaindropTokenFromEnv();
+
+  let token = authHeader || queryToken || cookieToken || envToken;
 
   if (!token) {
     return NextResponse.json(
@@ -142,10 +145,19 @@ export async function GET(request: NextRequest) {
     );
   }
 
-
   try {
     // 1. Find root collection "Synctable"
-    const collection = await findSynctableCollection(token);
+    let collection: Awaited<ReturnType<typeof findSynctableCollection>> = null;
+    try {
+      collection = await findSynctableCollection(token);
+    } catch (findErr) {
+      if (envToken && token !== envToken) {
+        collection = await findSynctableCollection(envToken);
+        token = envToken;
+      } else {
+        throw findErr;
+      }
+    }
 
     if (!collection) {
       return NextResponse.json({

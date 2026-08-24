@@ -90,7 +90,11 @@ export class KeychainService {
   }
 
   public getRaindropToken(): string {
-    return this.getSecret(RAINDROP_ACCOUNT);
+    const keychainSecret = this.getSecret(RAINDROP_ACCOUNT);
+    if (keychainSecret && keychainSecret.trim()) {
+      return keychainSecret.trim();
+    }
+    return process.env.RAINDROP_TOKEN?.trim() || "";
   }
 
   public setRaindropToken(token: string): void {

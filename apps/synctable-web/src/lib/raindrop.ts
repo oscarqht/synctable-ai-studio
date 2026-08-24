@@ -46,6 +46,14 @@ export interface RaindropTokenResponse {
   errorMessage?: string;
 }
 
+export function getRaindropTokenFromEnv(): string {
+  return (
+    process.env.RAINDROP_TOKEN?.trim() ||
+    process.env.NEXT_PUBLIC_RAINDROP_TOKEN?.trim() ||
+    ""
+  );
+}
+
 export function getRaindropConfig() {
   const clientId =
     process.env.RAINDROP_CLIENT_ID ||
@@ -57,11 +65,13 @@ export function getRaindropConfig() {
     process.env.RAINDROP_CALLBACK_URL ||
     process.env.NEXT_PUBLIC_RAINDROP_CALLBACK_URL ||
     "http://localhost:3000/api/auth/callback/raindrop";
+  const token = getRaindropTokenFromEnv();
 
   return {
     clientId,
     clientSecret,
     redirectUri,
+    token,
   };
 }
 

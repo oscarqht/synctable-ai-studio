@@ -38,4 +38,26 @@ describe("KeychainService", () => {
     testService.deleteSecret(testAccount);
     expect(testService.getSecret(testAccount)).toBe("");
   });
+
+  it("falls back to RAINDROP_TOKEN env var when keychain token is not set", () => {
+    const origEnv = process.env.RAINDROP_TOKEN;
+    const testService2 = new KeychainService("Synctable-UnitTest-Env");
+
+    try {
+      process.env.RAINDROP_TOKEN = "env-token-fallback-test";
+      // Mock getSecret to return empty string
+      testService2.getSecret = () => "";
+      expect(testService2.getRaindropToken()).toBe("env-token-fallback-test");
+
+      // When keychain has value, it takes precedence
+      testService2.getSecret = () => "keychain-token-priority";
+      expect(testService2.getRaindropToken()).toBe("keychain-token-priority");
+    } finally {
+      if (origEnv !== undefined) {
+        process.env.RAINDROP_TOKEN = origEnv;
+      } else {
+        delete process.env.RAINDROP_TOKEN;
+      }
+    }
+  });
 });
