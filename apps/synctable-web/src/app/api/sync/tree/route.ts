@@ -125,9 +125,10 @@ function ensureTreeHierarchy(nodes: any[]): BrowserTreeNode[] {
 }
 
 export async function GET(request: NextRequest) {
-  const authHeader = request.headers.get("Authorization")?.replace(/^Bearer\s+/i, "");
-  const queryToken = request.nextUrl.searchParams.get("token");
-  const token = authHeader || queryToken || request.cookies.get(ACCESS_TOKEN_COOKIE)?.value;
+  const authHeader = request.headers.get("Authorization")?.replace(/^Bearer\s+/i, "")?.trim();
+  const queryToken = request.nextUrl.searchParams.get("token")?.trim();
+  const cookieToken = request.cookies.get(ACCESS_TOKEN_COOKIE)?.value?.trim();
+  const token = authHeader || queryToken || cookieToken;
 
   if (!token) {
     return NextResponse.json(
@@ -135,7 +136,7 @@ export async function GET(request: NextRequest) {
         authenticated: false,
         collection: null,
         devices: [],
-        error: "Not authenticated with Raindrop. Please configure an API token or sign in.",
+        error: "Not authenticated with Raindrop. Please enter your API token or sign in.",
       } satisfies SynctableSyncResponse,
       { status: 401 }
     );

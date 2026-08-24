@@ -4,6 +4,7 @@ import {
   ACCESS_TOKEN_COOKIE,
   REFRESH_TOKEN_COOKIE,
   STATE_COOKIE,
+  getAuthCookieOptions,
 } from "@/lib/raindrop";
 import crypto from "crypto";
 
@@ -72,36 +73,22 @@ export async function GET(request: NextRequest) {
 
     const maxAge = tokenData.expires_in || 60 * 60 * 24 * 30; // 30 days fallback
 
-    redirectResponse.cookies.set(ACCESS_TOKEN_COOKIE, tokenData.access_token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-      maxAge,
-    });
+    redirectResponse.cookies.set(
+      ACCESS_TOKEN_COOKIE,
+      tokenData.access_token,
+      getAuthCookieOptions(maxAge)
+    );
 
     if (tokenData.refresh_token) {
       redirectResponse.cookies.set(
         REFRESH_TOKEN_COOKIE,
         tokenData.refresh_token,
-        {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === "production",
-          sameSite: "lax",
-          path: "/",
-          maxAge: 60 * 60 * 24 * 90, // 90 days
-        }
+        getAuthCookieOptions(60 * 60 * 24 * 90)
       );
     }
 
     // Clear state cookie
-    redirectResponse.cookies.set(STATE_COOKIE, "", {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-      maxAge: 0,
-    });
+    redirectResponse.cookies.set(STATE_COOKIE, "", getAuthCookieOptions(0));
 
     return redirectResponse;
   } catch (err: any) {

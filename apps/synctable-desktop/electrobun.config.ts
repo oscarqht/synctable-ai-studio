@@ -20,8 +20,8 @@ export default {
     copy: {
       "src/mainview/index.html": "views/mainview/index.html",
       "src/mainview/style.css": "views/mainview/style.css",
-      "docs/poster.jpeg": "views/mainview/assets/poster.jpeg",
-      "docs/logo.png": "views/mainview/assets/logo.png",
+      "../../docs/poster.jpeg": "views/mainview/assets/poster.jpeg",
+      "../../docs/logo.png": "views/mainview/assets/logo.png",
       "src/native/bin/dia-db-reader": "bin/dia-db-reader",
       "src/native/bin/sync-lifecycle-monitor": "bin/sync-lifecycle-monitor",
     },
@@ -30,10 +30,10 @@ export default {
       icons: "icon.iconset",
     },
     linux: {
-      icon: "docs/logo.png",
+      icon: "../../docs/logo.png",
     },
     win: {
-      icon: "docs/logo.png",
+      icon: "../../docs/logo.png",
     },
   },
 } satisfies ElectrobunConfig;

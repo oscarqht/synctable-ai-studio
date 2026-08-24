@@ -14,7 +14,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@synctable/ui": "workspace:*",
+    "@synctable/ui": "*",
     "@types/lz4js": "^0.2.2",
     "clsx": "^2.1.1",
     "electrobun": "^1.18.1",

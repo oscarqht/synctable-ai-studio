@@ -36,6 +36,21 @@ export function getFaviconUrl(urlStr: string | null): string {
 }
 
 /**
+ * Returns the public icon path for a given browser name.
+ */
+export function getBrowserIconPath(browserName?: string | null): string {
+  if (!browserName) return "";
+  const lower = browserName.toLowerCase().trim();
+  if (lower.includes("zen")) return "/browser-zen.png";
+  if (lower.includes("arc")) return "/browser-arc.png";
+  if (lower.includes("chrome")) return "/browser-chrome.png";
+  if (lower.includes("firefox")) return "/browser-firefox.png";
+  if (lower.includes("vivaldi")) return "/browser-vivaldi.png";
+  if (lower.includes("dia")) return "/browser-dia.png";
+  return `/browser-${lower.replace(/[^a-z0-9_-]/g, "-")}.png`;
+}
+
+/**
  * Formats a relative timestamp (e.g. "Just now", "5m ago", "Yesterday")
  */
 export function formatRelativeTime(dateString: string): string {
@@ -62,6 +77,25 @@ export function formatRelativeTime(dateString: string): string {
   } catch {
     return dateString;
   }
+}
+
+/**
+ * Recursively find the most recent timestamp (lastUpdateTime or snapshot_time) for a node and all its descendants.
+ */
+export function getNodeLastUpdateTime(node?: BrowserTreeNode | null): string {
+  if (!node) return "";
+  let latest = node.lastUpdateTime || node.snapshot_time || "";
+  const walk = (n: BrowserTreeNode) => {
+    const time = n.lastUpdateTime || n.snapshot_time || "";
+    if (time && (!latest || time > latest)) latest = time;
+    if (n.children && Array.isArray(n.children)) {
+      n.children.forEach(walk);
+    }
+  };
+  if (node.children && Array.isArray(node.children)) {
+    node.children.forEach(walk);
+  }
+  return latest;
 }
 
 /**
