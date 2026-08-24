@@ -180,8 +180,8 @@ export default function Home() {
         <div className="flex justify-between items-center w-full px-container-padding py-4 max-w-max-width mx-auto">
           {/* Brand Logo & Context */}
           <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl bg-surface-container-high border border-outline-variant/60 flex items-center justify-center shadow-xs overflow-hidden select-none shrink-0">
-              <img src="/logo.png" alt="Synctable" className="w-8 h-8 object-contain" />
+            <div className="w-10 h-10 rounded-xl bg-surface-container-high border border-outline-variant/60 flex items-center justify-center shadow-xs overflow-hidden select-none shrink-0 text-2xl">
+              <span role="img" aria-label="pizza" className="select-none leading-none">🍕</span>
             </div>
             <div>
               <h1 className="font-headline-lg text-headline-lg font-bold text-on-surface dark:text-on-surface-variant">
@@ -311,8 +311,8 @@ export default function Home() {
                   <span>Raindrop.io Cloud Sync Integration</span>
                 </div>
 
-                <div className="w-20 h-20 rounded-2xl bg-surface-container-high border border-outline-variant/60 flex items-center justify-center shadow-lg overflow-hidden">
-                  <img src="/logo.png" alt="Synctable" className="w-14 h-14 object-contain" />
+                <div className="w-20 h-20 rounded-2xl bg-surface-container-high border border-outline-variant/60 flex items-center justify-center shadow-lg overflow-hidden text-5xl">
+                  <span role="img" aria-label="pizza" className="select-none leading-none">🍕</span>
                 </div>
               </div>
 

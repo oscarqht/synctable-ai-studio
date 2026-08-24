@@ -209,8 +209,8 @@ export function App({ rpc }: AppProps) {
         {/* Left: Brand logo + Synctable text, immediately followed by the Segmented Tab Switcher */}
         <div className="flex items-center gap-3.5 pl-16 shrink-0">
           <div className="flex items-center gap-2.5 select-none">
-            <div className="w-8 h-8 rounded-xl bg-surface-container-high border border-outline-variant/60 flex items-center justify-center shadow-xs overflow-hidden shrink-0">
-              <img src="assets/logo.png" alt="Synctable" className="w-6 h-6 object-contain" />
+            <div className="w-8 h-8 rounded-xl bg-surface-container-high border border-outline-variant/60 flex items-center justify-center shadow-xs overflow-hidden shrink-0 text-lg">
+              <span role="img" aria-label="pizza" className="select-none leading-none">🍕</span>
             </div>
             <span className="font-headline-lg text-[18px] font-bold text-on-surface leading-tight">
               Synctable

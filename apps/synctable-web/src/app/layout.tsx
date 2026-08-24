@@ -5,9 +5,9 @@ export const metadata: Metadata = {
   title: "Synctable - Workspace Dashboard",
   description: "Cross-browser tree backup and workspace synchronization utility",
   icons: {
-    icon: "/logo.png",
-    shortcut: "/favicon.png",
-    apple: "/logo.png",
+    icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍕</text></svg>",
+    shortcut: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍕</text></svg>",
+    apple: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍕</text></svg>",
   },
 };
 
