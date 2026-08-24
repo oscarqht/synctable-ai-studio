@@ -32,8 +32,8 @@ jobs:
           SYNC_BRANCH="${SYNC_BRANCH_SECRET:-${SYNC_BRANCH_VAR:-sync/main}}"
 
           if [ -z "$TARGET_REPO" ]; then
-            echo "Error: TARGET_REPO is not set. Please set TARGET_REPO in Repository Secrets or Variables."
-            exit 1
+            echo "::warning::TARGET_REPO is not set. Please set TARGET_REPO in Repository Secrets or Variables if cross-repo sync is desired."
+            exit 0
           fi
 
           if [ -z "$GH_TOKEN" ]; then
