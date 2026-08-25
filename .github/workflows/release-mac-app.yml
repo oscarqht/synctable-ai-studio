@@ -1,0 +1,57 @@
+name: Build & Release macOS Desktop App
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Build & Release macOS App
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Build macOS app installer
+        run: |
+          cd apps/synctable-desktop
+          bun run package
+
+      - name: Prepare Release Info
+        id: release_info
+        run: |
+          VERSION=$(node -p "require('./apps/synctable-desktop/package.json').version")
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          TAG_NAME="v${VERSION}-${SHORT_SHA}"
+          RELEASE_TITLE="Synctable Desktop v${VERSION} (${SHORT_SHA})"
+          echo "tag_name=${TAG_NAME}" >> "$GITHUB_OUTPUT"
+          echo "release_title=${RELEASE_TITLE}" >> "$GITHUB_OUTPUT"
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.release_info.outputs.tag_name }}
+          name: ${{ steps.release_info.outputs.release_title }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: |
+            apps/synctable-desktop/artifacts/*.dmg
+            apps/synctable-desktop/artifacts/*.tar.zst
+            apps/synctable-desktop/artifacts/*update.json
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
