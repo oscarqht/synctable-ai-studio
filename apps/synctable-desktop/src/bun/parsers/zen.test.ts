@@ -253,5 +253,51 @@ describe("parseZenSessionstore", () => {
     ]);
     expect(nodes.some((node) => node.node_type === "folder" && node.id?.includes("split-synctable"))).toBe(false);
   });
+
+  test("imports direct split tabs sharing a groupId as a split view in the workspace", () => {
+    const nodes = parseZenSessionData({
+      windows: [{
+        spaces: [{ uuid: "space-lab", name: "Lab" }],
+        folders: [],
+        tabs: [
+          {
+            entries: [{ url: "https://trello.example/lab", title: "Lab task" }],
+            index: 1,
+            zenWorkspace: "space-lab",
+            pinned: true,
+          },
+          {
+            entries: [{ url: "https://figma.com/file/123", title: "Figma design" }],
+            index: 1,
+            groupId: "1787620893988-31",
+            zenWorkspace: "space-lab",
+            _zenIsActiveTab: true,
+          },
+          {
+            entries: [{ url: "http://localhost:3002/app", title: "Local app" }],
+            index: 1,
+            groupId: "1787620893988-31",
+            zenWorkspace: "space-lab",
+            zenStaticLabel: "dev (3002)",
+            _zenIsActiveTab: true,
+          },
+        ],
+      }],
+    }, {
+      osType: "macos",
+      profileName: "Default",
+      snapshotTime: "2026-08-19T00:00:00.000Z",
+    });
+
+    const workspace = nodes.find((node) => node.node_type === "workspace" && node.title === "Lab");
+    const splitView = nodes.find((node) => node.node_type === "split_view");
+    expect(splitView).toMatchObject({ title: "Split View", parent_id: workspace?.id, sort_order: 1 });
+
+    const splitChildren = nodes.filter((node) => node.parent_id === splitView?.id);
+    expect(splitChildren.map((node) => ({ title: node.title, url: node.url }))).toEqual([
+      { title: "Figma design", url: "https://figma.com/file/123" },
+      { title: "dev (3002)", url: "http://localhost:3002/app" },
+    ]);
+  });
 });
 

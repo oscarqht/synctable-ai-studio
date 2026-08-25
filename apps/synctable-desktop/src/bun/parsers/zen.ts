@@ -305,6 +305,53 @@ export function parseZenSessionData(data: any, options: Omit<ZenParserOptions, "
       });
     });
 
+    const splitIdFor = (tab: any): string | undefined => {
+      const directSplit = tab?.splitViewId ?? tab?.splitId ?? tab?.split?.id;
+      if (directSplit != null) return String(directSplit);
+      if (!tab?.zenIsEmpty && tab?.groupId != null && !folderIds.has(String(tab.groupId))) {
+        return String(tab.groupId);
+      }
+      return undefined;
+    };
+
+    const splitIds = new Set<string>();
+    tabs.forEach((tab: any) => {
+      if (tab?.zenIsEmpty) return;
+      const splitId = splitIdFor(tab);
+      if (splitId != null) splitIds.add(splitId);
+    });
+
+    const splitNodeId = (splitId: string) => `zen-${profileId}-win-${winIdx}-split-${encodeURIComponent(splitId)}`;
+    splitIds.forEach((splitId) => {
+      const splitTabs = tabs
+        .map((tab: any, idx: number) => ({ tab, idx }))
+        .filter((item: { tab: any; idx: number }) => !item.tab?.zenIsEmpty && splitIdFor(item.tab) === splitId);
+      if (splitTabs.length === 0) return;
+      const firstTabIndex = splitTabs[0].idx;
+      const containingFolderIds = new Set<string>(
+        splitTabs
+          .map((item: { tab: any; idx: number }) => item.tab?.groupId != null && folderIds.has(String(item.tab.groupId)) ? folderIds.get(String(item.tab.groupId)) : null)
+          .filter((id: string | null | undefined): id is string => Boolean(id))
+      );
+      const parentId: string = containingFolderIds.size === 1
+        ? Array.from(containingFolderIds)[0]
+        : getWorkspaceId(splitTabs[0]?.tab?.zenWorkspace);
+
+      nodes.push({
+        id: splitNodeId(splitId),
+        browser_name: "zen",
+        os_type: osType,
+        profile_name: profileName,
+        node_type: "split_view",
+        title: "Split View",
+        url: null,
+        parent_id: parentId,
+        sort_order: firstTabIndex,
+        snapshot_time: snapshotTime,
+        lastUpdateTime: snapshotTime,
+      });
+    });
+
     tabs.forEach((tab: any, tabIdx: number) => {
       // Zen creates an empty about:blank tab as each folder's internal group
       // anchor. It is not displayed as a user tab and must not leak into Synctable.
@@ -314,7 +361,12 @@ export function parseZenSessionData(data: any, options: Omit<ZenParserOptions, "
       const url = entry?.url || null;
       const title = tab.zenStaticLabel?.trim() || entry?.title || tab.title || url || `Tab ${tabIdx + 1}`;
       const isPinned = Boolean(tab.pinned);
+      const splitId = splitIdFor(tab);
       const folderId = tab.groupId != null ? folderIds.get(String(tab.groupId)) : undefined;
+
+      const parentId = splitId != null && splitIds.has(splitId)
+        ? splitNodeId(splitId)
+        : folderId || getWorkspaceId(tab.zenWorkspace);
 
       nodes.push({
         id: `zen-${profileId}-win-${winIdx}-tab-${tabIdx}`,
@@ -324,7 +376,7 @@ export function parseZenSessionData(data: any, options: Omit<ZenParserOptions, "
         node_type: isPinned ? "pinned_tab" : "tab",
         title,
         url,
-        parent_id: folderId || getWorkspaceId(tab.zenWorkspace),
+        parent_id: parentId,
         sort_order: tabIdx,
         snapshot_time: snapshotTime,
         lastUpdateTime: snapshotTime,
