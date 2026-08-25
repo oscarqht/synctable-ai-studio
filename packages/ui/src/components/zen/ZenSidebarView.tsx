@@ -239,7 +239,7 @@ export function ZenSidebarView({
     return null;
   }
 
-  const { browserTitle, profileName, workspaceTitle, tabCount } =
+  const { browserTitle, workspaceTitle, tabCount } =
     currentWorkspaceItem;
 
   const displayTitle =
@@ -323,16 +323,19 @@ export function ZenSidebarView({
             chevron_right
           </span>
           {currentWorkspaceItem.icon && (
-            <span className="text-lg shrink-0">{currentWorkspaceItem.icon}</span>
+            <span
+              className="text-lg shrink-0 select-none"
+              style={{
+                fontFamily:
+                  '"Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", "Segoe UI Symbol", sans-serif',
+              }}
+            >
+              {currentWorkspaceItem.icon}
+            </span>
           )}
           <h4 className="font-title-md text-title-md font-bold truncate">
             {displayTitle}
           </h4>
-          {profileName && profileName !== "Default" && (
-            <span className="text-[11px] opacity-70 truncate max-w-[90px]">
-              ({profileName})
-            </span>
-          )}
         </div>
 
         <div className="flex items-center gap-2 shrink-0">

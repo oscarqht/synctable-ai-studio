@@ -1,13 +1,79 @@
 import { existsSync, readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { platform } from "node:os";
 import type { BrowserTreeNode, OSType } from "../../shared/types";
 
 export interface ChromeParserOptions {
   filePath: string;
   sessionFilePath?: string;
+  historyFilePath?: string;
   osType: OSType;
   profileName: string;
   snapshotTime: string;
+  browserName?: string;
 }
+
+export interface LiveBrowserTab {
+  index: number;
+  title: string;
+  url: string;
+  isSelected: boolean;
+  isPinned: boolean;
+  isSplit: boolean;
+  splitSide: string;
+  groupName: string;
+}
+
+export interface LiveBrowserWindow {
+  hwnd: number;
+  pid?: number;
+  profileDirectory?: string;
+  title: string;
+  activeUrl: string;
+  tabs: LiveBrowserTab[];
+}
+
+
+export function fetchLiveWindows(browser = "chrome"): LiveBrowserWindow[] {
+  if (platform() !== "win32") return [];
+
+  const candidatePaths = [
+    join(import.meta.dir, "..", "bin", "win-live-reader.exe"),
+    join(dirname(process.execPath), "win-live-reader.exe"),
+    join(dirname(process.execPath), "..", "Resources", "app", "bin", "win-live-reader.exe"),
+    join(import.meta.dir, "..", "native", "bin", "win-live-reader.exe"),
+    join(import.meta.dir, "..", "..", "..", "bin", "win-live-reader.exe"),
+    join(import.meta.dir, "..", "..", "src", "native", "bin", "win-live-reader.exe"),
+    join(process.cwd(), "bin", "win-live-reader.exe"),
+    join(process.cwd(), "Resources", "app", "bin", "win-live-reader.exe"),
+    join(process.cwd(), "apps", "synctable-desktop", "src", "native", "bin", "win-live-reader.exe"),
+    join(process.cwd(), "src", "native", "bin", "win-live-reader.exe"),
+  ];
+
+
+  for (const exe of candidatePaths) {
+    if (existsSync(exe)) {
+      try {
+        const proc = Bun.spawnSync([exe, browser], { timeout: 3000 });
+        if (proc.exitCode === 0) {
+          const stdout = proc.stdout.toString().trim();
+          if (stdout.startsWith("[") && stdout.endsWith("]")) {
+            const parsed = JSON.parse(stdout) as LiveBrowserWindow[];
+            if (parsed.length > 0 && parsed.some((w) => w.tabs && w.tabs.length > 0)) {
+              return parsed;
+            }
+          }
+        }
+      } catch {
+        // continue
+      }
+    }
+  }
+
+  return [];
+}
+
+
 
 type SessionTab = {
   id: number;
@@ -130,28 +196,39 @@ function parseSessionSnapshot(sessionFilePath?: string): { tabs: SessionTab[]; g
       let title: string | undefined;
       let color: string | null = null;
 
-      // Current Chrome stores the title as a UTF-16 pickle at byte 20; older
-      // snapshots use a UTF-8 pickle at the same position.
-      const length16 = payload.readInt32LE(20);
-      const byteLength16 = length16 * 2;
-      if (length16 >= 0 && 24 + byteLength16 <= payload.length) {
-        title = payload.subarray(24, 24 + byteLength16).toString("utf16le");
-        const afterTitleOffset = (24 + byteLength16 + 3) & ~3;
-        if (payload.length >= afterTitleOffset + 4) {
-          const colorId = payload.readUInt32LE(afterTitleOffset);
-          color = parseChromeGroupColor(colorId);
-        }
-      }
+      const rawLen = payload.readInt32LE(20);
+      if (rawLen >= 0) {
+        const byteLen16 = rawLen * 2;
+        const afterOffset16 = (24 + byteLen16 + 3) & ~3;
+        const color16 = payload.length >= afterOffset16 + 4
+          ? parseChromeGroupColor(payload.readUInt32LE(afterOffset16))
+          : null;
 
-      if (!title) {
-        const length8 = payload.readInt32LE(20);
-        if (length8 >= 0 && 24 + length8 <= payload.length) {
-          title = payload.subarray(24, 24 + length8).toString("utf8");
-          const afterTitleOffset = (24 + length8 + 3) & ~3;
-          if (payload.length >= afterTitleOffset + 4) {
-            const colorId = payload.readUInt32LE(afterTitleOffset);
-            color = parseChromeGroupColor(colorId);
+        const byteLen8 = rawLen;
+        const afterOffset8 = (24 + byteLen8 + 3) & ~3;
+        const color8 = payload.length >= afterOffset8 + 4
+          ? parseChromeGroupColor(payload.readUInt32LE(afterOffset8))
+          : null;
+
+        if (color16 !== null && color8 === null && 24 + byteLen16 <= payload.length) {
+          title = payload.subarray(24, 24 + byteLen16).toString("utf16le").replace(/\0/g, "").trim();
+          color = color16;
+        } else if (color8 !== null && color16 === null && 24 + byteLen8 <= payload.length) {
+          title = payload.subarray(24, 24 + byteLen8).toString("utf8").replace(/\0/g, "").trim();
+          color = color8;
+        } else if (24 + byteLen16 <= payload.length) {
+          const u16 = payload.subarray(24, 24 + byteLen16).toString("utf16le").replace(/\0/g, "").trim();
+          // Check if u16 looks like a valid string without high non-standard characters
+          if (u16 && !/[^\u0020-\u007E\u00A0-\uFFFF]/.test(u16)) {
+            title = u16;
+            color = color16;
+          } else if (24 + byteLen8 <= payload.length) {
+            title = payload.subarray(24, 24 + byteLen8).toString("utf8").replace(/\0/g, "").trim();
+            color = color8;
           }
+        } else if (24 + byteLen8 <= payload.length) {
+          title = payload.subarray(24, 24 + byteLen8).toString("utf8").replace(/\0/g, "").trim();
+          color = color8;
         }
       }
 
@@ -175,7 +252,7 @@ function tabTitle(url: string): string {
 }
 
 export function parseChromePreferences(options: ChromeParserOptions): BrowserTreeNode[] {
-  const { filePath, sessionFilePath, osType, profileName, snapshotTime } = options;
+  const { filePath, sessionFilePath, osType, profileName, snapshotTime, browserName = "chrome" } = options;
   if (!existsSync(filePath)) return [];
 
   const raw = readFileSync(filePath, "utf-8");
@@ -197,7 +274,115 @@ export function parseChromePreferences(options: ChromeParserOptions): BrowserTre
     lastUpdateTime: snapshotTime,
   });
 
+  // 1. On Windows, if Chrome is actively running with open UI windows for this profile,
+  // capture the live tab state directly from the running window in real time (0ms delay).
+  if (osType === "windows") {
+    const allLiveWindows = fetchLiveWindows(browserName);
+    const profileLiveWindows = allLiveWindows.filter((win) => {
+      if (!win.profileDirectory) return true;
+      const p1 = win.profileDirectory.trim().toLowerCase();
+      const p2 = profileName.trim().toLowerCase();
+      return p1 === p2 || (p1 === "default" && p2 === "") || (p1 === "" && p2 === "default");
+    });
+
+    if (profileLiveWindows.length > 0 && profileLiveWindows.some((w) => w.tabs && w.tabs.length > 0)) {
+      profileLiveWindows.forEach((win, winIndex) => {
+        const windowId = `chrome-${profileName}-win-${winIndex}`;
+        const workspaceId = `chrome-${profileName}-win-${winIndex}-ws-default`;
+        nodes.push({
+          id: windowId,
+          browser_name: "chrome",
+          os_type: osType,
+          profile_name: profileName,
+          node_type: "window",
+          title: win.title || `Chrome Window ${winIndex + 1}`,
+          url: null,
+          parent_id: rootId,
+          sort_order: winIndex,
+          snapshot_time: snapshotTime,
+          lastUpdateTime: snapshotTime,
+        });
+        nodes.push({
+          id: workspaceId,
+          browser_name: "chrome",
+          os_type: osType,
+          profile_name: profileName,
+          node_type: "workspace",
+          title: "Default Workspace",
+          url: null,
+          parent_id: windowId,
+          sort_order: 0,
+          snapshot_time: snapshotTime,
+          lastUpdateTime: snapshotTime,
+        });
+
+        let activeSplitId: string | null = null;
+        let splitCounter = 0;
+
+        win.tabs.forEach((tab) => {
+          let resolvedUrl = tab.url;
+          if (!resolvedUrl) {
+            if ((tab.title.includes(".") || tab.title.includes("/")) && !tab.title.includes(" ") && !tab.title.includes(":")) {
+              resolvedUrl = tab.title.startsWith("http") || tab.title.startsWith("chrome") ? tab.title : `https://${tab.title}`;
+            } else {
+              resolvedUrl = `https://www.google.com/search?q=${encodeURIComponent(tab.title)}`;
+            }
+          } else if (!resolvedUrl.startsWith("http") && !resolvedUrl.startsWith("chrome") && !resolvedUrl.startsWith("file")) {
+            resolvedUrl = `https://${resolvedUrl}`;
+          }
+
+
+          let parentId = workspaceId;
+          if (tab.isSplit) {
+            if (tab.splitSide === "left" || !activeSplitId) {
+              activeSplitId = `chrome-${profileName}-win-${winIndex}-split-${++splitCounter}`;
+              nodes.push({
+                id: activeSplitId,
+                browser_name: "chrome",
+                os_type: osType,
+                profile_name: profileName,
+                node_type: "split_view",
+                title: "Split View",
+                url: null,
+                parent_id: workspaceId,
+                sort_order: tab.index,
+                snapshot_time: snapshotTime,
+                lastUpdateTime: snapshotTime,
+              });
+            }
+            parentId = activeSplitId;
+            if (tab.splitSide === "right") {
+              activeSplitId = null;
+            }
+          }
+
+          nodes.push({
+            id: `chrome-${profileName}-tab-${winIndex}-${tab.index}`,
+            browser_name: "chrome",
+            os_type: osType,
+            profile_name: profileName,
+            node_type: tab.isPinned ? "pinned_tab" : "tab",
+            title: tab.title || tabTitle(resolvedUrl),
+            url: resolvedUrl,
+            parent_id: parentId,
+            sort_order: tab.index,
+            snapshot_time: snapshotTime,
+            lastUpdateTime: snapshotTime,
+          });
+        });
+      });
+
+      if (nodes.some((n) => n.node_type === "tab" || n.node_type === "pinned_tab")) {
+        return nodes;
+      }
+    }
+  }
+
+
+  // 2. If Chrome is closed or not exposing live UI windows, parse the persisted Session log
   const session = parseSessionSnapshot(sessionFilePath);
+
+
   const preferenceGroups = new Map(
     Object.entries<any>(data?.tab_groups || {}).map(([id, group]) => [
       id,
@@ -296,3 +481,4 @@ export function parseChromePreferences(options: ChromeParserOptions): BrowserTre
 
   return nodes;
 }
+

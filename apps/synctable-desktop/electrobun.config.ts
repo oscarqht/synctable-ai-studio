@@ -1,4 +1,20 @@
 import type { ElectrobunConfig } from "electrobun/bun";
+import { platform } from "node:os";
+
+const macNativeHelpers: Record<string, string> = platform() === "darwin"
+  ? {
+      "src/native/bin/dia-db-reader": "bin/dia-db-reader",
+      "src/native/bin/sync-lifecycle-monitor": "bin/sync-lifecycle-monitor",
+    }
+  : {};
+
+const winNativeHelpers: Record<string, string> = platform() === "win32"
+  ? {
+      "src/native/bin/win-file-reader.exe": "bin/win-file-reader.exe",
+      "src/native/bin/win-live-reader.exe": "bin/win-live-reader.exe",
+    }
+  : {};
+
 
 export default {
   app: {
@@ -28,9 +44,10 @@ export default {
       "src/mainview/browser-zen.png": "views/mainview/browser-zen.png",
       "../../docs/poster.jpeg": "views/mainview/assets/poster.jpeg",
       "../../docs/logo.png": "views/mainview/assets/logo.png",
-      "src/native/bin/dia-db-reader": "bin/dia-db-reader",
-      "src/native/bin/sync-lifecycle-monitor": "bin/sync-lifecycle-monitor",
+      ...macNativeHelpers,
+      ...winNativeHelpers,
     },
+
     mac: {
       defaultRenderer: "native",
       icons: "icon.iconset",

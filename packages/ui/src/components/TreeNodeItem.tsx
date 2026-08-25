@@ -339,7 +339,15 @@ export function TreeNodeItem({
           /* Zen Signature 3D Folder Flap / Custom Emoji */
           <div className="flex items-center gap-1.5 shrink-0">
             {node.icon ? (
-              <span className="text-sm shrink-0 leading-none">{node.icon}</span>
+              <span
+                className="text-sm shrink-0 leading-none select-none"
+                style={{
+                  fontFamily:
+                    '"Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", "Segoe UI Symbol", sans-serif',
+                }}
+              >
+                {node.icon}
+              </span>
             ) : (
               <ZenFolderIcon
                 isOpen={expanded}
@@ -384,7 +392,17 @@ export function TreeNodeItem({
             >
               Space
             </span>
-            {node.icon && <span className="text-xs">{node.icon}</span>}
+            {node.icon && (
+              <span
+                className="text-xs select-none"
+                style={{
+                  fontFamily:
+                    '"Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", "Segoe UI Symbol", sans-serif',
+                }}
+              >
+                {node.icon}
+              </span>
+            )}
           </div>
         ) : (
           <div className="flex items-center gap-1 shrink-0">

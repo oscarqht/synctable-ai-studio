@@ -104,6 +104,19 @@ const rpc = defineElectrobunRPC<SynctableRPCSchema>("bun", {
           }
         }
       },
+      minimizeWindow: () => {
+        win.minimize();
+      },
+      toggleMaximizeWindow: () => {
+        if (win.isMaximized()) {
+          win.unmaximize();
+        } else {
+          win.maximize();
+        }
+      },
+      closeWindow: () => {
+        win.close();
+      },
     },
   },
 });

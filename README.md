@@ -125,7 +125,8 @@ synctable/
 
 ### Prerequisites
 - [Bun](https://bun.sh) (v1.1+)
-- macOS Command Line Tools (`clang` and `swiftc`) for the native readers
+- **macOS**: Command Line Tools (`clang` and `swiftc`) for the macOS native reader daemons.
+- **Windows**: .NET Framework / C# Compiler (`csc.exe`, included in standard Windows installations) for Windows native helpers.
 
 Dia does not need to be running for sync, and Synctable does not use Dia's user
 interface. Dia encrypts `tabs.db`, so macOS may ask once for access to the
@@ -139,8 +140,11 @@ the Keychain secret or derived keys.
 # Install dependencies across all workspace packages
 bun install
 
-# Start the desktop app in development mode
+# Start the desktop app in development mode (macOS / Windows)
 bun run dev:desktop
+
+# On Windows: Start desktop app with admin elevation (if inspecting elevated browser sessions)
+bun run dev:desktop:admin
 
 # Start the Next.js web application (http://localhost:3000)
 bun run dev:web
@@ -151,8 +155,10 @@ bun test
 # Typecheck TypeScript across all packages
 bun run typecheck
 
-# Build desktop distribution
-bun run build:desktop
+# Package desktop installer (cross-platform / platform-specific)
+bun run package:desktop      # Auto-detects OS
+bun run package:mac          # Package macOS .dmg & update archives
+bun run package:win          # Package Windows installer (.exe & .zip)
 
 # Build Next.js production web app
 bun run build:web
@@ -160,6 +166,15 @@ bun run build:web
 
 ---
 
+## 🚀 CI/CD & Releases
+
+The GitHub Actions workflow [`.github/workflows/release.yml`](.github/workflows/release.yml) automatically builds macOS and Windows desktop packages concurrently on release / main push:
+- **macOS (`macos-latest`)**: Produces `.dmg` installers, compressed tarballs, and update metadata.
+- **Windows (`windows-latest`)**: Produces Windows Setup installer (`Synctable-Setup.exe` and `Synctable-Setup.zip`), archives, and metadata, published both as GitHub Release assets and downloadable GitHub Actions workflow artifacts (`windows-desktop-installer`).
+
+---
+
 ## 📖 Documentation
 
 For detailed technical specifications, risk mitigations, and implementation strategies, refer to the [Product Requirements Document (PRD)](docs/PRD.md).
+

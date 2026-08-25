@@ -1,5 +1,9 @@
 import { describe, expect, test, mock } from "bun:test";
-import { BrowserSyncManager, canonicalizeTree, computeTreeHash } from "./sync";
+import { mkdtempSync, mkdirSync, rmSync, utimesSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { BrowserSyncManager, addChromeProfiles, addZenProfiles, canonicalizeTree, computeTreeHash } from "./sync";
+import type { BrowserProfile } from "./sync";
 import { SynctableDB } from "./db";
 import { KeychainService } from "./keychain";
 import { RaindropClient } from "./raindrop";
@@ -33,6 +37,64 @@ describe("canonicalizeTree & computeTreeHash", () => {
     const tree2 = [createTab("t1", "Google", "https://google.com", "2026-08-19T01:00:00.000Z")];
 
     expect(computeTreeHash(tree1)).not.toBe(computeTreeHash(tree2));
+  });
+});
+
+describe("addZenProfiles", () => {
+  test("discovers the live Windows-compatible recovery session before the stale shutdown session", () => {
+    const root = mkdtempSync(join(tmpdir(), "synctable-zen-profiles-"));
+    try {
+      const profileDir = join(root, "abc.default-release");
+      mkdirSync(join(profileDir, "sessionstore-backups"), { recursive: true });
+      writeFileSync(join(profileDir, "sessionstore.jsonlz4"), "stale");
+      writeFileSync(join(profileDir, "sessionstore-backups", "recovery.jsonlz4"), "live");
+
+      const profiles: BrowserProfile[] = [];
+      addZenProfiles(profiles, root);
+
+      expect(profiles).toEqual([{
+        browser: "zen",
+        displayName: "Zen Browser",
+        profileName: "abc.default-release",
+        sourcePath: join(profileDir, "sessionstore-backups", "recovery.jsonlz4"),
+      }]);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("addChromeProfiles", () => {
+  test("discovers Windows-style profiles and selects the newest live session", () => {
+    const root = mkdtempSync(join(tmpdir(), "synctable-chrome-user-data-"));
+    try {
+      const profileDir = join(root, "Profile 2");
+      const sessionsDir = join(profileDir, "Sessions");
+      mkdirSync(sessionsDir, { recursive: true });
+      const preferencesPath = join(profileDir, "Preferences");
+      const oldSession = join(sessionsDir, "Session_old");
+      const latestSession = join(sessionsDir, "Session_live");
+      writeFileSync(preferencesPath, "{}");
+      writeFileSync(oldSession, "old");
+      writeFileSync(latestSession, "latest");
+      utimesSync(oldSession, new Date("2026-01-01T00:00:00.000Z"), new Date("2026-01-01T00:00:00.000Z"));
+      utimesSync(latestSession, new Date("2026-01-02T00:00:00.000Z"), new Date("2026-01-02T00:00:00.000Z"));
+
+      const profiles: BrowserProfile[] = [];
+      addChromeProfiles(profiles, root);
+
+      expect(profiles).toEqual([{
+        browser: "chrome",
+        displayName: "Google Chrome",
+        profileName: "Profile 2",
+        sourcePath: preferencesPath,
+        sessionPath: latestSession,
+        candidateSessionPaths: [latestSession, oldSession],
+      }]);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+
   });
 });
 

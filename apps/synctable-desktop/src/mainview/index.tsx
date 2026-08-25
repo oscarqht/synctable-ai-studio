@@ -5,6 +5,10 @@ import type { SynctableRPCSchema } from "../shared/types";
 import { App } from "./App";
 
 const rpc = Electroview.defineRPC<SynctableRPCSchema>({
+  // Windows DPAPI access starts a PowerShell process and can take several
+  // seconds. Electrobun's 1-second default otherwise makes settings reads and
+  // saves appear to fail even though the backend finishes persisting them.
+  maxRequestTime: 15_000,
   handlers: {
     requests: {},
     messages: {

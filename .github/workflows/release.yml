@@ -1,0 +1,128 @@
+name: Build & Release Desktop Apps
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-macos:
+    name: Build macOS Desktop App
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Build macOS app installer
+        run: |
+          cd apps/synctable-desktop
+          bun run package:mac
+
+      - name: Upload macOS Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-desktop-artifacts
+          path: |
+            apps/synctable-desktop/artifacts/*.dmg
+            apps/synctable-desktop/artifacts/*.tar.zst
+            apps/synctable-desktop/artifacts/*update.json
+          if-no-files-found: error
+
+  build-windows:
+    name: Build Windows Desktop App
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Build Windows app installer
+        shell: bash
+        run: |
+          cd apps/synctable-desktop
+          bun run package:win
+
+      - name: Copy standalone Windows installer binaries to artifacts
+        shell: bash
+        run: |
+          mkdir -p apps/synctable-desktop/artifacts
+          if [ -f "apps/synctable-desktop/build/stable-win-x64/Synctable-Setup.exe" ]; then
+            cp apps/synctable-desktop/build/stable-win-x64/Synctable-Setup.exe apps/synctable-desktop/artifacts/
+          fi
+          if [ -f "apps/synctable-desktop/build/stable-win-x64/Synctable-Setup.zip" ]; then
+            cp apps/synctable-desktop/build/stable-win-x64/Synctable-Setup.zip apps/synctable-desktop/artifacts/
+          fi
+
+      - name: Upload Windows Desktop Installer & Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-desktop-installer
+          path: |
+            apps/synctable-desktop/artifacts/*
+          if-no-files-found: error
+
+  release:
+    name: Publish GitHub Release
+    needs: [build-macos, build-windows]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download macOS Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: macos-desktop-artifacts
+          path: release-artifacts/macos
+
+      - name: Download Windows Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-desktop-installer
+          path: release-artifacts/windows
+
+      - name: Prepare Release Info
+        id: release_info
+        run: |
+          VERSION=$(node -p "require('./apps/synctable-desktop/package.json').version")
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          TAG_NAME="v${VERSION}-${SHORT_SHA}"
+          RELEASE_TITLE="Synctable Desktop v${VERSION} (${SHORT_SHA})"
+          echo "tag_name=${TAG_NAME}" >> "$GITHUB_OUTPUT"
+          echo "release_title=${RELEASE_TITLE}" >> "$GITHUB_OUTPUT"
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.release_info.outputs.tag_name }}
+          name: ${{ steps.release_info.outputs.release_title }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: |
+            release-artifacts/macos/*
+            release-artifacts/windows/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

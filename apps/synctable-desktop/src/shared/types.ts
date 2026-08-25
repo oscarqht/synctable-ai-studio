@@ -134,6 +134,18 @@ export interface SynctableRPCSchema extends ElectrobunRPCSchema {
         params: { url: string };
         response: void;
       };
+      minimizeWindow: {
+        params: void;
+        response: void;
+      };
+      toggleMaximizeWindow: {
+        params: void;
+        response: void;
+      };
+      closeWindow: {
+        params: void;
+        response: void;
+      };
     };
     messages: {
       syncStatusChanged: { status: "idle" | "syncing" | "error"; message?: string };
