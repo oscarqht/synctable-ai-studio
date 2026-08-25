@@ -14,6 +14,8 @@
     "build": "npm run build --workspace=synctable-web",
     "build:web": "npm run build --workspace=synctable-web",
     "build:desktop": "npm run build --workspace=synctable-desktop",
+    "package": "npm run package --workspace=synctable-desktop",
+    "package:desktop": "npm run package --workspace=synctable-desktop",
     "start": "npm run start --workspace=synctable-web",
     "start:web": "npm run start --workspace=synctable-web",
     "start:desktop": "npm run start --workspace=synctable-desktop",

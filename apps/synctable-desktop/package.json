@@ -11,6 +11,9 @@
     "start": "electrobun dev",
     "prebuild": "bun run build:native && bun run build:css",
     "build": "electrobun build",
+    "package": "bun run build:native && bun run build:css && electrobun build --env=stable",
+    "package:mac": "bun run build:native && bun run build:css && electrobun build --env=stable",
+    "package:desktop": "bun run build:native && bun run build:css && electrobun build --env=stable",
     "test": "bun test",
     "typecheck": "tsc --noEmit"
   },
