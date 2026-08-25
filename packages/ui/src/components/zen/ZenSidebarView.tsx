@@ -239,7 +239,7 @@ export function ZenSidebarView({
     return null;
   }
 
-  const { browserTitle, profileName, workspaceTitle, tabCount } =
+  const { browserTitle, workspaceTitle, tabCount } =
     currentWorkspaceItem;
 
   const displayTitle =
@@ -336,11 +336,6 @@ export function ZenSidebarView({
           <h4 className="font-title-md text-title-md font-bold truncate">
             {displayTitle}
           </h4>
-          {profileName && profileName !== "Default" && (
-            <span className="text-[11px] opacity-70 truncate max-w-[90px]">
-              ({profileName})
-            </span>
-          )}
         </div>
 
         <div className="flex items-center gap-2 shrink-0">

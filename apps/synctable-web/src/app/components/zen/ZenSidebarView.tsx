@@ -157,7 +157,7 @@ function isPinnedNode(item: BrowserTreeNode): boolean {
     return null;
   }
 
-  const { browserTitle, profileName, workspaceTitle, tabCount } = currentWorkspaceItem;
+  const { browserTitle, workspaceTitle, tabCount } = currentWorkspaceItem;
 
   const hasThemeBg = Boolean(
     (currentWorkspaceItem.themeColors && currentWorkspaceItem.themeColors.length > 0) ||
@@ -193,17 +193,6 @@ function isPinnedNode(item: BrowserTreeNode): boolean {
           }`}>
             {browserTitle}
           </span>
-          {profileName && profileName !== "Default" && (
-            <span className={`text-[10px] font-medium truncate max-w-[120px] px-1.5 py-0.5 rounded ${
-              isDark
-                ? "text-white/80 bg-white/15"
-                : hasThemeBg
-                ? "text-slate-600 dark:text-slate-300 bg-white/40 dark:bg-white/10"
-                : "text-slate-400 dark:text-slate-500"
-            }`}>
-              ({profileName})
-            </span>
-          )}
         </div>
         <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${
           isDark

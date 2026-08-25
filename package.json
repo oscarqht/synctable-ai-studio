@@ -8,20 +8,22 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "npm run dev --workspace=synctable-web",
-    "dev:web": "npm run dev --workspace=synctable-web",
-    "dev:desktop": "npm run dev --workspace=synctable-desktop",
+    "dev": "bun run --cwd ./apps/synctable-web dev",
+    "dev:web": "bun run --cwd ./apps/synctable-web dev",
+    "dev:desktop": "bun run --cwd ./apps/synctable-desktop dev",
     "dev:desktop:admin": "powershell -Command \"Start-Process powershell -ArgumentList '-NoExit', '-Command', 'Set-Location (Get-Location); bun dev:desktop' -Verb RunAs\"",
-    "build": "npm run build --workspace=synctable-web",
-    "build:web": "npm run build --workspace=synctable-web",
-    "build:desktop": "npm run build --workspace=synctable-desktop",
-    "package": "npm run package --workspace=synctable-desktop",
-    "package:desktop": "npm run package --workspace=synctable-desktop",
-    "start": "npm run start --workspace=synctable-web",
-    "start:web": "npm run start --workspace=synctable-web",
-    "start:desktop": "npm run start --workspace=synctable-desktop",
+    "build": "bun run --cwd ./apps/synctable-web build",
+    "build:web": "bun run --cwd ./apps/synctable-web build",
+    "build:desktop": "bun run --cwd ./apps/synctable-desktop build",
+    "package": "bun run --cwd ./apps/synctable-desktop package",
+    "package:desktop": "bun run --cwd ./apps/synctable-desktop package",
+    "package:mac": "bun run --cwd ./apps/synctable-desktop package:mac",
+    "package:win": "bun run --cwd ./apps/synctable-desktop package:win",
+    "start": "bun run --cwd ./apps/synctable-web start",
+    "start:web": "bun run --cwd ./apps/synctable-web start",
+    "start:desktop": "bun run --cwd ./apps/synctable-desktop start",
     "test": "bun test",
-    "lint": "npm run lint --workspace=synctable-web",
-    "typecheck": "npm run typecheck --workspace=synctable-web"
+    "lint": "bun run --cwd ./apps/synctable-web lint",
+    "typecheck": "bun run --cwd ./apps/synctable-web typecheck"
   }
 }
