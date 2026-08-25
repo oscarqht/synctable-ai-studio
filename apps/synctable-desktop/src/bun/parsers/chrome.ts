@@ -196,28 +196,39 @@ function parseSessionSnapshot(sessionFilePath?: string): { tabs: SessionTab[]; g
       let title: string | undefined;
       let color: string | null = null;
 
-      // Current Chrome stores the title as a UTF-16 pickle at byte 20; older
-      // snapshots use a UTF-8 pickle at the same position.
-      const length16 = payload.readInt32LE(20);
-      const byteLength16 = length16 * 2;
-      if (length16 >= 0 && 24 + byteLength16 <= payload.length) {
-        title = payload.subarray(24, 24 + byteLength16).toString("utf16le");
-        const afterTitleOffset = (24 + byteLength16 + 3) & ~3;
-        if (payload.length >= afterTitleOffset + 4) {
-          const colorId = payload.readUInt32LE(afterTitleOffset);
-          color = parseChromeGroupColor(colorId);
-        }
-      }
+      const rawLen = payload.readInt32LE(20);
+      if (rawLen >= 0) {
+        const byteLen16 = rawLen * 2;
+        const afterOffset16 = (24 + byteLen16 + 3) & ~3;
+        const color16 = payload.length >= afterOffset16 + 4
+          ? parseChromeGroupColor(payload.readUInt32LE(afterOffset16))
+          : null;
 
-      if (!title) {
-        const length8 = payload.readInt32LE(20);
-        if (length8 >= 0 && 24 + length8 <= payload.length) {
-          title = payload.subarray(24, 24 + length8).toString("utf8");
-          const afterTitleOffset = (24 + length8 + 3) & ~3;
-          if (payload.length >= afterTitleOffset + 4) {
-            const colorId = payload.readUInt32LE(afterTitleOffset);
-            color = parseChromeGroupColor(colorId);
+        const byteLen8 = rawLen;
+        const afterOffset8 = (24 + byteLen8 + 3) & ~3;
+        const color8 = payload.length >= afterOffset8 + 4
+          ? parseChromeGroupColor(payload.readUInt32LE(afterOffset8))
+          : null;
+
+        if (color16 !== null && color8 === null && 24 + byteLen16 <= payload.length) {
+          title = payload.subarray(24, 24 + byteLen16).toString("utf16le").replace(/\0/g, "").trim();
+          color = color16;
+        } else if (color8 !== null && color16 === null && 24 + byteLen8 <= payload.length) {
+          title = payload.subarray(24, 24 + byteLen8).toString("utf8").replace(/\0/g, "").trim();
+          color = color8;
+        } else if (24 + byteLen16 <= payload.length) {
+          const u16 = payload.subarray(24, 24 + byteLen16).toString("utf16le").replace(/\0/g, "").trim();
+          // Check if u16 looks like a valid string without high non-standard characters
+          if (u16 && !/[^\u0020-\u007E\u00A0-\uFFFF]/.test(u16)) {
+            title = u16;
+            color = color16;
+          } else if (24 + byteLen8 <= payload.length) {
+            title = payload.subarray(24, 24 + byteLen8).toString("utf8").replace(/\0/g, "").trim();
+            color = color8;
           }
+        } else if (24 + byteLen8 <= payload.length) {
+          title = payload.subarray(24, 24 + byteLen8).toString("utf8").replace(/\0/g, "").trim();
+          color = color8;
         }
       }
 

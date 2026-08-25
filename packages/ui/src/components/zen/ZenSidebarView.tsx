@@ -323,7 +323,15 @@ export function ZenSidebarView({
             chevron_right
           </span>
           {currentWorkspaceItem.icon && (
-            <span className="text-lg shrink-0">{currentWorkspaceItem.icon}</span>
+            <span
+              className="text-lg shrink-0 select-none"
+              style={{
+                fontFamily:
+                  '"Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", "Segoe UI Symbol", sans-serif',
+              }}
+            >
+              {currentWorkspaceItem.icon}
+            </span>
           )}
           <h4 className="font-title-md text-title-md font-bold truncate">
             {displayTitle}
