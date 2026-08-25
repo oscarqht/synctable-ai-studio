@@ -63,10 +63,12 @@ export function ZenTabItem({
         title={`${tab.title || domain || "Tab"}\n${tab.url || ""}`}
         className={`w-10 h-10 rounded-lg flex items-center justify-center relative cursor-pointer group/tab transition-all duration-150 active:scale-95 ${
           isActive
-            ? "bg-white dark:bg-surface-container-highest shadow-xs ring-2 ring-primary/50"
+            ? isDarkTheme
+              ? "bg-white/30 text-white shadow-xs ring-2 ring-white/50"
+              : "bg-black/15 text-inherit shadow-xs ring-2 ring-black/20"
             : isDarkTheme
             ? "hover:bg-white/20 text-white"
-            : "hover:bg-surface-container-low text-on-surface"
+            : "hover:bg-black/10 text-inherit"
         }`}
       >
         {favicon && !imgError ? (
@@ -79,7 +81,7 @@ export function ZenTabItem({
         ) : (
           <span
             className={`w-5 h-5 rounded text-[11px] font-bold flex items-center justify-center uppercase ${
-              isDarkTheme ? "bg-white/20 text-white" : "bg-surface-container text-on-surface"
+              isDarkTheme ? "bg-white/20 text-white" : "bg-black/10 text-inherit"
             }`}
           >
             {domain ? domain.charAt(0) : "T"}
@@ -97,10 +99,10 @@ export function ZenTabItem({
         isActive
           ? isDarkTheme
             ? "bg-white/25 text-white font-bold"
-            : "bg-surface-container-high text-on-surface font-bold shadow-2xs"
+            : "bg-black/15 text-inherit font-bold shadow-2xs"
           : isDarkTheme
-          ? "hover:bg-white/20 text-inherit font-normal"
-          : "hover:bg-surface-container-low text-on-surface font-normal"
+          ? "hover:bg-white/20 text-white font-normal"
+          : "hover:bg-black/10 text-inherit font-normal"
       }`}
     >
       {/* Favicon / Domain Icon */}
@@ -146,11 +148,11 @@ export function ZenTabItem({
             className={`w-6 h-6 flex items-center justify-center rounded transition-colors ${
               isDarkTheme
                 ? "text-white/70 hover:text-white hover:bg-white/20"
-                : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container"
+                : "text-inherit opacity-75 hover:opacity-100 hover:bg-black/10"
             }`}
           >
             {copied ? (
-              <span className="material-symbols-outlined text-[15px] text-primary leading-none">check</span>
+              <span className="material-symbols-outlined text-[15px] leading-none">check</span>
             ) : (
               <span className="material-symbols-outlined text-[15px] leading-none">content_copy</span>
             )}
@@ -165,7 +167,7 @@ export function ZenTabItem({
             className={`w-6 h-6 flex items-center justify-center rounded transition-colors ${
               isDarkTheme
                 ? "text-white/70 hover:text-white hover:bg-white/20"
-                : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container"
+                : "text-inherit opacity-75 hover:opacity-100 hover:bg-black/10"
             }`}
           >
             <span className="material-symbols-outlined text-[15px] leading-none">open_in_new</span>

@@ -101,10 +101,12 @@ export function ZenTabItem({
       onClick={() => onSelect?.(tab)}
       className={`group/tab relative flex items-center gap-3 px-3.5 py-2.5 min-h-[42px] rounded-2xl cursor-pointer transition-all duration-150 select-none ${
         isActive
-          ? "bg-white text-slate-900 shadow-sm border border-slate-100 dark:border-slate-700/60 font-bold"
+          ? isDarkTheme
+            ? "bg-white/25 text-white font-bold"
+            : "bg-black/15 text-inherit font-bold shadow-sm"
           : isDarkTheme
           ? "hover:bg-white/20 text-white font-medium"
-          : "hover:bg-slate-200/50 dark:hover:bg-slate-800/50 text-slate-800 dark:text-slate-200 font-semibold"
+          : "hover:bg-black/10 text-inherit font-semibold"
       } active:scale-[0.99]`}
     >
       {/* Favicon / Domain badge */}
@@ -126,7 +128,7 @@ export function ZenTabItem({
       {/* Tab Title */}
       <div className="flex-1 min-w-0 flex items-center">
         <span
-          className={`text-sm truncate leading-tight tracking-tight ${isDarkTheme && !isActive ? "text-white font-medium" : ""}`}
+          className={`text-sm truncate leading-tight tracking-tight ${isDarkTheme && !isActive ? "text-white font-medium" : "text-inherit"}`}
           title={tab.title || domain || "Tab"}
         >
           {tab.title || domain || "Untitled Tab"}
@@ -148,11 +150,11 @@ export function ZenTabItem({
             className={`w-5 h-5 flex items-center justify-center rounded-md transition-all ${
               isDarkTheme
                 ? "text-white/70 hover:text-white hover:bg-white/20"
-                : "text-slate-400 hover:text-cyan-700 dark:hover:text-cyan-300 hover:bg-slate-100 dark:hover:bg-slate-700"
+                : "text-inherit opacity-75 hover:opacity-100 hover:bg-black/10"
             }`}
           >
             {copied ? (
-              <Check className="w-3.5 h-3.5 text-emerald-600" />
+              <Check className="w-3.5 h-3.5" />
             ) : (
               <Copy className="w-3.5 h-3.5" />
             )}
@@ -173,7 +175,7 @@ export function ZenTabItem({
             className={`w-5 h-5 flex items-center justify-center rounded-md transition-all ${
               isDarkTheme
                 ? "text-white/70 hover:text-white hover:bg-white/20"
-                : "text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-300 hover:bg-slate-100 dark:hover:bg-slate-700"
+                : "text-inherit opacity-75 hover:opacity-100 hover:bg-black/10"
             }`}
           >
             <ExternalLink className="w-3.5 h-3.5" />

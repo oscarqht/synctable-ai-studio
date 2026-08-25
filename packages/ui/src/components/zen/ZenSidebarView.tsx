@@ -187,7 +187,7 @@ export function ZenSidebarView({
     }
   };
 
-  const isCardDarkOrColored = hasExplicitColor ? isDark : archetype !== "neutral";
+  const isCardDark = hasExplicitColor ? isDark : archetype === "neutral" ? false : false;
 
   const renderItem = (item: BrowserTreeNode, idx: number) => {
     if (item.node_type === "folder") {
@@ -196,7 +196,7 @@ export function ZenSidebarView({
           key={item.id || `folder_${idx}`}
           folder={item}
           activeTabId={activeTabId}
-          isDarkTheme={isCardDarkOrColored}
+          isDarkTheme={isDark}
           isSingleColumn={isSingleColumn}
           alwaysShowActions={alwaysShowActions}
           onSelectTab={handleSelectTab}
@@ -211,7 +211,7 @@ export function ZenSidebarView({
           key={item.id || `split_${idx}`}
           node={item}
           activeTabId={activeTabId}
-          isDarkTheme={isCardDarkOrColored}
+          isDarkTheme={isDark}
           isSingleColumn={isSingleColumn}
           alwaysShowActions={alwaysShowActions}
           onSelectTab={handleSelectTab}
@@ -226,7 +226,7 @@ export function ZenSidebarView({
         tab={item}
         isPinned={item.node_type === "pinned_tab"}
         isActive={activeTabId === item.id}
-        isDarkTheme={isCardDarkOrColored}
+        isDarkTheme={isDark}
         isSingleColumn={isSingleColumn}
         alwaysShowActions={alwaysShowActions}
         onSelect={handleSelectTab}
@@ -266,39 +266,39 @@ export function ZenSidebarView({
   if (hasExplicitColor) {
     containerClasses = `rounded-lg ${padClasses} flex flex-col shadow-sm hover:shadow-md transition-all duration-300 border ${
       isDark
-        ? "border-white/20 text-white"
-        : "border-black/[0.08] dark:border-white/10 text-on-surface"
+        ? "border-white/10 text-[#ffffff]"
+        : "border-black/[0.08] text-[#191c1b]"
     }`;
     badgeClasses = isDark
-      ? "bg-white/30 text-white"
-      : "bg-surface-container font-label-md text-label-md text-on-surface-variant";
+      ? "bg-white/30 text-[#ffffff]"
+      : "bg-black/10 font-label-md text-label-md text-[#404945]";
     searchInputClasses = isDark
-      ? "bg-white/20 text-white placeholder:text-white/70 focus:ring-white"
-      : "bg-surface-container-low text-on-surface placeholder:text-on-surface-variant focus:ring-outline";
+      ? "bg-white/20 text-[#ffffff] placeholder:text-white/70 focus:ring-white"
+      : "bg-black/5 text-[#191c1b] placeholder:text-black/60 focus:ring-black/20";
     headerActionClasses = isDark
       ? "text-white/80 hover:text-white"
-      : "text-on-surface-variant hover:text-on-surface";
+      : "text-[#404945] hover:text-[#191c1b]";
   } else if (archetype === "primary") {
     containerClasses =
-      `bg-primary-container text-on-primary-container rounded-lg ${padClasses} flex flex-col shadow-sm hover:-translate-y-0.5 transition-transform duration-300`;
-    badgeClasses = "bg-white/30 text-on-primary-container";
+      `bg-[#7daf9c] text-[#0e4334] rounded-lg ${padClasses} flex flex-col shadow-sm hover:-translate-y-0.5 transition-transform duration-300`;
+    badgeClasses = "bg-white/30 text-[#0e4334]";
     searchInputClasses =
-      "bg-white/20 text-on-primary-container placeholder:text-on-primary-container/70 focus:ring-white";
-    headerActionClasses = "opacity-80 hover:opacity-100";
+      "bg-white/20 text-[#0e4334] placeholder:text-[#0e4334]/70 focus:ring-white";
+    headerActionClasses = "text-[#0e4334]/80 hover:text-[#0e4334]";
   } else if (archetype === "secondary") {
     containerClasses =
-      `bg-secondary-container text-on-secondary-container rounded-lg ${padClasses} flex flex-col shadow-sm hover:-translate-y-0.5 transition-transform duration-300`;
-    badgeClasses = "bg-white/40 text-on-secondary-container";
+      `bg-[#ffca98] text-[#7a532a] rounded-lg ${padClasses} flex flex-col shadow-sm hover:-translate-y-0.5 transition-transform duration-300`;
+    badgeClasses = "bg-white/40 text-[#7a532a]";
     searchInputClasses =
-      "bg-white/40 text-on-secondary-container placeholder:text-on-secondary-container/70 focus:ring-white";
-    headerActionClasses = "opacity-80 hover:opacity-100";
+      "bg-white/40 text-[#7a532a] placeholder:text-[#7a532a]/70 focus:ring-white";
+    headerActionClasses = "text-[#7a532a]/80 hover:text-[#7a532a]";
   } else if (archetype === "tertiary") {
     containerClasses =
-      `bg-tertiary-container text-on-tertiary-container rounded-lg ${padClasses} flex flex-col shadow-sm hover:-translate-y-0.5 transition-transform duration-300`;
-    badgeClasses = "bg-white/30 text-on-tertiary-container";
+      `bg-[#d4958e] text-[#5b2e29] rounded-lg ${padClasses} flex flex-col shadow-sm hover:-translate-y-0.5 transition-transform duration-300`;
+    badgeClasses = "bg-white/30 text-[#5b2e29]";
     searchInputClasses =
-      "bg-white/20 text-on-tertiary-container placeholder:text-on-tertiary-container/70 focus:ring-white";
-    headerActionClasses = "opacity-80 hover:opacity-100";
+      "bg-white/20 text-[#5b2e29] placeholder:text-[#5b2e29]/70 focus:ring-white";
+    headerActionClasses = "text-[#5b2e29]/80 hover:text-[#5b2e29]";
   } else {
     // Neutral archetype
     containerClasses =

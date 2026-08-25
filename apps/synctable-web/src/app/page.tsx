@@ -5,7 +5,7 @@ import type {
   RaindropUserProfile,
   SynctableSyncResponse,
 } from "@synctable/ui";
-import { MultiDeviceCardsPortal } from "@synctable/ui";
+import { MultiDeviceCardsPortal, ThemeToggle } from "@synctable/ui";
 
 export default function Home() {
   const [user, setUser] = useState<RaindropUserProfile | null>(null);
@@ -176,7 +176,7 @@ export default function Home() {
   return (
     <div className="bg-surface text-on-surface font-body-lg min-h-screen flex flex-col">
       {/* TopNavBar Component */}
-      <header className="bg-surface dark:bg-surface-dim border-b border-outline-variant dark:border-outline sticky top-0 z-50">
+      <header className="bg-surface dark:bg-surface-dim border-b border-outline-variant sticky top-0 z-50">
         <div className="flex justify-between items-center w-full px-container-padding py-4 max-w-max-width mx-auto">
           {/* Brand Logo & Context */}
           <div className="flex items-center gap-4">
@@ -194,7 +194,9 @@ export default function Home() {
           </div>
 
           {/* Trailing Actions */}
-          <div className="flex items-center gap-2 md:gap-4">
+          <div className="flex items-center gap-2 md:gap-3">
+            <ThemeToggle variant="segmented" showLabels={false} />
+
             {authLoading ? (
               <div className="flex items-center gap-2 text-on-surface-variant font-label-md text-label-md">
                 <span className="material-symbols-outlined animate-spin text-[20px]">sync</span>

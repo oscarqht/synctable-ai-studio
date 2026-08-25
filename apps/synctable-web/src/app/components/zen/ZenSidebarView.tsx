@@ -188,7 +188,7 @@ function isPinnedNode(item: BrowserTreeNode): boolean {
             isDark
               ? "text-white"
               : hasThemeBg
-              ? "text-slate-900 dark:text-slate-100"
+              ? "text-slate-900"
               : "text-slate-800 dark:text-slate-200"
           }`}>
             {browserTitle}
@@ -198,7 +198,7 @@ function isPinnedNode(item: BrowserTreeNode): boolean {
           isDark
             ? "text-white/90 bg-white/20 border border-white/20"
             : hasThemeBg
-            ? "text-slate-700 dark:text-slate-200 bg-white/50 dark:bg-black/20 border border-white/40 dark:border-white/10 shadow-xs"
+            ? "text-slate-700 bg-white/50 border border-white/40 shadow-xs"
             : "text-slate-500 dark:text-slate-400 bg-slate-200/60 dark:bg-slate-800/60"
         }`}>
           {tabCount} {tabCount === 1 ? "tab" : "tabs"}
@@ -241,7 +241,7 @@ function isPinnedNode(item: BrowserTreeNode): boolean {
       {workspaceTitle && (
         <div className="px-3.5 pt-1 pb-1 select-none">
           <span className={`text-xs sm:text-[13px] font-semibold tracking-tight flex items-center gap-1.5 ${
-            isDark ? "text-white/90" : "text-slate-500/80 dark:text-slate-400/80"
+            isDark ? "text-white/90" : hasThemeBg ? "text-slate-600" : "text-slate-500/80 dark:text-slate-400/80"
           }`}>
             {currentWorkspaceItem.icon && <span className="text-sm">{currentWorkspaceItem.icon}</span>}
             <span>{workspaceTitle}</span>

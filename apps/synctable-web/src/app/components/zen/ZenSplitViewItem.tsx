@@ -108,10 +108,12 @@ export function ZenSplitViewItem({
       }}
       className={`group/tab relative flex items-center gap-2 px-3.5 py-2.5 min-h-[42px] rounded-2xl cursor-pointer transition-all duration-150 select-none ${
         isAnyTabActive
-          ? "bg-white/90 dark:bg-slate-900/90 text-slate-900 dark:text-white shadow-xs border border-white/60 dark:border-white/10 font-bold backdrop-blur-xs"
+          ? isDarkTheme
+            ? "bg-white/25 text-white font-bold"
+            : "bg-black/15 text-inherit font-bold shadow-sm"
           : isDarkTheme
           ? "hover:bg-white/20 text-white font-medium"
-          : "hover:bg-white/40 dark:hover:bg-white/10 text-slate-800 dark:text-slate-200 font-semibold"
+          : "hover:bg-black/10 text-inherit font-semibold"
       } active:scale-[0.99]`}
     >
       {/* Side-by-side split panes separated by clean divider lines */}

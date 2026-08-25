@@ -121,10 +121,10 @@ export function ZenSplitViewItem({
         isAnyTabActive
           ? isDarkTheme
             ? "bg-white/25 text-white font-bold"
-            : "bg-surface-container-high text-on-surface font-bold shadow-2xs"
+            : "bg-black/15 text-inherit font-bold shadow-2xs"
           : isDarkTheme
-          ? "hover:bg-white/20 text-inherit"
-          : "hover:bg-surface-container-low text-on-surface"
+          ? "hover:bg-white/20 text-white font-normal"
+          : "hover:bg-black/10 text-inherit font-normal"
       }`}
     >
       {/* Side-by-side split panes separated by clean divider lines */}
@@ -137,7 +137,7 @@ export function ZenSplitViewItem({
           return (
             <React.Fragment key={tab.id || `${tab.title}_${idx}`}>
               {idx > 0 && (
-                <div className="w-px h-3.5 shrink-0 bg-outline-variant/50" />
+                <div className={`w-px h-3.5 shrink-0 ${isDarkTheme ? "bg-white/20" : "bg-black/20"}`} />
               )}
               <div
                 onClick={(e) => {
@@ -166,7 +166,7 @@ export function ZenSplitViewItem({
                 {/* Tab Title */}
                 <span
                   className={`font-body-sm text-body-sm truncate ${
-                    isTabActive ? "underline decoration-primary underline-offset-2 font-bold" : ""
+                    isTabActive ? "underline underline-offset-2 font-bold" : ""
                   }`}
                 >
                   {tab.title || domain || `Pane ${idx + 1}`}
@@ -197,11 +197,11 @@ export function ZenSplitViewItem({
           className={`w-6 h-6 flex items-center justify-center rounded transition-colors ${
             isDarkTheme
               ? "text-white/70 hover:text-white hover:bg-white/20"
-              : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container"
+              : "text-inherit opacity-75 hover:opacity-100 hover:bg-black/10"
           }`}
         >
           {splitCopied ? (
-            <span className="material-symbols-outlined text-[15px] text-primary leading-none">check</span>
+            <span className="material-symbols-outlined text-[15px] leading-none">check</span>
           ) : (
             <span className="material-symbols-outlined text-[15px] leading-none">content_copy</span>
           )}
@@ -219,7 +219,7 @@ export function ZenSplitViewItem({
           className={`w-6 h-6 flex items-center justify-center rounded transition-colors ${
             isDarkTheme
               ? "text-white/70 hover:text-white hover:bg-white/20"
-              : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container"
+              : "text-inherit opacity-75 hover:opacity-100 hover:bg-black/10"
           }`}
         >
           <span className="material-symbols-outlined text-[15px] leading-none">open_in_new</span>

@@ -4,7 +4,7 @@ import type {
   SyncStats,
   SynctableSyncResponse,
 } from "@synctable/ui";
-import { MultiDeviceCardsPortal, countTabs } from "@synctable/ui";
+import { MultiDeviceCardsPortal, ThemeToggle, countTabs } from "@synctable/ui";
 import { LocalTab } from "./LocalTab";
 import { SettingsModal } from "./SettingsModal";
 
@@ -382,6 +382,9 @@ export function App({ rpc }: AppProps) {
               </span>
             </button>
           )}
+
+          {/* Theme Switcher */}
+          <ThemeToggle variant="button" />
 
           {/* Settings Button */}
           <button

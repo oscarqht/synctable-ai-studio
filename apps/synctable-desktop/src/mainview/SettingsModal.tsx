@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { ThemeToggle } from "@synctable/ui";
 
 export interface SettingsModalProps {
   isOpen: boolean;
@@ -66,6 +67,17 @@ export function SettingsModal({
 
         {/* Modal Body */}
         <form onSubmit={handleSubmit} className="p-6 space-y-5 text-left">
+          {/* Appearance & Theme Selector */}
+          <div className="space-y-2">
+            <label className="block font-label-md text-label-md font-bold text-on-surface flex items-center gap-1.5">
+              <span className="material-symbols-outlined text-[16px] text-on-surface-variant">
+                palette
+              </span>
+              <span>Appearance &amp; Theme</span>
+            </label>
+            <ThemeToggle variant="cards" />
+          </div>
+
           {/* Device Name */}
           <div className="space-y-1.5">
             <label className="block font-label-md text-label-md font-bold text-on-surface flex items-center gap-1.5">

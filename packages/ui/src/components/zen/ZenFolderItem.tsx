@@ -82,7 +82,7 @@ export function ZenFolderItem({
         onClick={() => setIsOpen(!isOpen)}
         title={`Folder: ${folder.title || "Folder"} (${children.length} tabs)`}
         className={`w-10 h-10 rounded-lg flex items-center justify-center cursor-pointer relative transition-all ${
-          isDarkTheme ? "hover:bg-white/20 text-white" : "hover:bg-surface-container-low text-on-surface"
+          isDarkTheme ? "hover:bg-white/20 text-white" : "hover:bg-black/10 text-inherit"
         }`}
       >
         <ZenFolderIcon isOpen={isOpen} size={20} color={folderColor} />
@@ -98,7 +98,7 @@ export function ZenFolderItem({
         className={`flex items-center gap-2 px-3 h-8 rounded-lg cursor-pointer transition-colors duration-200 ${
           isDarkTheme
             ? "hover:bg-white/15 text-inherit opacity-85 hover:opacity-100"
-            : "hover:bg-surface-container-low text-on-surface-variant hover:text-on-surface"
+            : "hover:bg-black/10 text-inherit opacity-85 hover:opacity-100"
         }`}
       >
         {/* Folder Icon or Emoji */}
@@ -138,11 +138,11 @@ export function ZenFolderItem({
             className={`w-6 h-6 flex items-center justify-center rounded transition-colors ${
               isDarkTheme
                 ? "text-white/70 hover:text-white hover:bg-white/20"
-                : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container"
+                : "text-inherit opacity-75 hover:opacity-100 hover:bg-black/10"
             }`}
           >
             {copied ? (
-              <span className="material-symbols-outlined text-[15px] text-primary leading-none">check</span>
+              <span className="material-symbols-outlined text-[15px] leading-none">check</span>
             ) : (
               <span className="material-symbols-outlined text-[15px] leading-none">content_copy</span>
             )}
@@ -155,7 +155,7 @@ export function ZenFolderItem({
             className={`w-6 h-6 flex items-center justify-center rounded transition-colors ${
               isDarkTheme
                 ? "text-white/70 hover:text-white hover:bg-white/20"
-                : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container"
+                : "text-inherit opacity-75 hover:opacity-100 hover:bg-black/10"
             }`}
           >
             <span className="material-symbols-outlined text-[15px] leading-none">open_in_new</span>
