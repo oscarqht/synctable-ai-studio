@@ -5,8 +5,10 @@ import type {
   SynctableSyncResponse,
 } from "@synctable/ui";
 import { MultiDeviceCardsPortal, ThemeToggle, countTabs } from "@synctable/ui";
+import type { UpdateCheckResult, UpdateInfo } from "../shared/types";
 import { LocalTab } from "./LocalTab";
 import { SettingsModal } from "./SettingsModal";
+import { UpdateToast } from "./UpdateToast";
 
 interface AppProps {
   rpc: any;
@@ -27,6 +29,12 @@ export function App({ rpc }: AppProps) {
   const [savedDeviceName, setSavedDeviceName] = useState<string>("");
   const [savedRaindropToken, setSavedRaindropToken] = useState<string>("");
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
+
+  // Update states
+  const [appVersion, setAppVersion] = useState<string>("0.3.0");
+  const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
+  const [installingUpdate, setInstallingUpdate] = useState<boolean>(false);
+
 
   // Load preferences
   const loadPreferences = useCallback(async () => {
@@ -89,11 +97,25 @@ export function App({ rpc }: AppProps) {
     [rpc]
   );
 
-  // Initial load and syncComplete listener
+  // Initial load and event listeners
   useEffect(() => {
     loadPreferences();
     loadLocalData();
     loadCloudData(true);
+
+    // Fetch current app version
+    rpc.request.getAppVersion?.()
+      .then((res: { version: string }) => {
+        if (res?.version) setAppVersion(res.version);
+      })
+      .catch((err: any) => console.warn("Failed to get app version:", err));
+
+    // Check if there is already a pending update ready to install
+    rpc.request.getPendingUpdate?.()
+      .then((info: UpdateInfo | null) => {
+        if (info) setUpdateInfo(info);
+      })
+      .catch((err: any) => console.warn("Failed to get pending update:", err));
 
     const handleSyncEvent = (e: Event) => {
       const customEvent = e as CustomEvent;
@@ -103,11 +125,66 @@ export function App({ rpc }: AppProps) {
       }
     };
 
+    const handleUpdateAvailable = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      if (customEvent.detail) {
+        setUpdateInfo(customEvent.detail);
+      }
+    };
+
+    const handleUpdateStatusChanged = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      if (customEvent.detail) {
+        setUpdateInfo(customEvent.detail);
+      }
+    };
+
     window.addEventListener("synctable:syncComplete", handleSyncEvent);
+    window.addEventListener("synctable:updateAvailable", handleUpdateAvailable);
+    window.addEventListener("synctable:updateStatusChanged", handleUpdateStatusChanged);
+
     return () => {
       window.removeEventListener("synctable:syncComplete", handleSyncEvent);
+      window.removeEventListener("synctable:updateAvailable", handleUpdateAvailable);
+      window.removeEventListener("synctable:updateStatusChanged", handleUpdateStatusChanged);
     };
-  }, [loadPreferences, loadLocalData, loadCloudData]);
+  }, [loadPreferences, loadLocalData, loadCloudData, rpc]);
+
+  // Handle Manual Update Check from Settings
+  const handleCheckForUpdates = async (): Promise<UpdateCheckResult | void> => {
+    try {
+      const result: UpdateCheckResult = await rpc.request.checkForUpdates({ forceCheck: true });
+      if (result.updateAvailable && result.updateInfo) {
+        setUpdateInfo(result.updateInfo);
+      }
+      return result;
+    } catch (err) {
+      console.error("Manual check for updates failed:", err);
+      throw err;
+    }
+  };
+
+  // Handle Install & Relaunch
+  const handleInstallUpdateAndRelaunch = async () => {
+    setInstallingUpdate(true);
+    try {
+      await rpc.request.installUpdateAndRelaunch();
+    } catch (err) {
+      console.error("Install & Relaunch failed:", err);
+      setInstallingUpdate(false);
+    }
+  };
+
+  // Handle Dismiss Toast
+  const handleDismissUpdate = async () => {
+    try {
+      await rpc.request.dismissUpdate();
+    } catch (err) {
+      console.warn("Dismiss update failed:", err);
+    }
+    setUpdateInfo(null);
+  };
+
 
   // Handle Tab Switch
   const handleTabSwitch = (tab: "local" | "cloud") => {
@@ -433,9 +510,22 @@ export function App({ rpc }: AppProps) {
         onClose={() => setIsSettingsOpen(false)}
         savedDeviceName={savedDeviceName}
         savedRaindropToken={savedRaindropToken}
+        currentVersion={appVersion}
+        pendingUpdate={updateInfo}
         onSave={handleSaveSettings}
         onOpenExternal={handleOpenExternal}
+        onCheckForUpdates={handleCheckForUpdates}
+        onInstallUpdate={handleInstallUpdateAndRelaunch}
+      />
+
+      {/* Auto-Update Floating Toast */}
+      <UpdateToast
+        updateInfo={updateInfo}
+        onInstall={handleInstallUpdateAndRelaunch}
+        onDismiss={handleDismissUpdate}
+        installing={installingUpdate}
       />
     </div>
   );
 }
+

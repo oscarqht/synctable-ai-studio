@@ -17,7 +17,18 @@ const rpc = Electroview.defineRPC<SynctableRPCSchema>({
           new CustomEvent("synctable:syncComplete", { detail: result })
         );
       },
+      updateAvailable: (info) => {
+        window.dispatchEvent(
+          new CustomEvent("synctable:updateAvailable", { detail: info })
+        );
+      },
+      updateStatusChanged: (info) => {
+        window.dispatchEvent(
+          new CustomEvent("synctable:updateStatusChanged", { detail: info })
+        );
+      },
     },
+
   },
 });
 

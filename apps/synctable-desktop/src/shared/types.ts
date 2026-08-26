@@ -91,6 +91,25 @@ export interface CloudSyncResponse {
   error?: string;
 }
 
+export interface UpdateInfo {
+  version: string;
+  releaseName: string;
+  releaseNotes: string;
+  publishedAt?: string;
+  htmlUrl?: string;
+  status: "available" | "downloading" | "ready_to_install" | "error";
+  downloadProgress?: number;
+  errorMessage?: string;
+}
+
+export interface UpdateCheckResult {
+  updateAvailable: boolean;
+  currentVersion: string;
+  latestVersion?: string;
+  updateInfo?: UpdateInfo | null;
+  error?: string;
+}
+
 export interface SynctableRPCSchema extends ElectrobunRPCSchema {
   bun: {
     requests: {
@@ -134,6 +153,26 @@ export interface SynctableRPCSchema extends ElectrobunRPCSchema {
         params: { url: string };
         response: void;
       };
+      checkForUpdates: {
+        params: { forceCheck?: boolean } | undefined;
+        response: UpdateCheckResult;
+      };
+      getPendingUpdate: {
+        params: void;
+        response: UpdateInfo | null;
+      };
+      installUpdateAndRelaunch: {
+        params: void;
+        response: { success: boolean; message?: string };
+      };
+      dismissUpdate: {
+        params: void;
+        response: void;
+      };
+      getAppVersion: {
+        params: void;
+        response: { version: string; name: string };
+      };
       minimizeWindow: {
         params: void;
         response: void;
@@ -155,7 +194,10 @@ export interface SynctableRPCSchema extends ElectrobunRPCSchema {
     requests: {};
     messages: {
       syncComplete: SyncResult;
+      updateAvailable: UpdateInfo;
+      updateStatusChanged: UpdateInfo;
     };
   };
 }
+
 

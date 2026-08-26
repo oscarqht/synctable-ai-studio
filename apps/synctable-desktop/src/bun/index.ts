@@ -6,11 +6,15 @@ import { SynctableDB } from "./db";
 import { defaultKeychain } from "./keychain";
 import { defaultRaindropClient } from "./raindrop";
 import { BrowserSyncManager } from "./sync";
+import { defaultAutoUpdater } from "./updater";
 import type { CloudSyncResponse, SynctableRPCSchema } from "../shared/types";
 
+// Check if there is a pending update waiting to be installed before continuing launch
+defaultAutoUpdater.checkAndApplyPendingUpdate();
 
 const db = new SynctableDB();
 const syncManager = new BrowserSyncManager(db);
+
 const DEFAULT_WINDOW_FRAME = { x: 120, y: 80, width: 1150, height: 780 };
 const savedWindowSize = db.getWindowSize();
 
@@ -104,7 +108,36 @@ const rpc = defineElectrobunRPC<SynctableRPCSchema>("bun", {
           }
         }
       },
+      checkForUpdates: async (params) => {
+        return await defaultAutoUpdater.checkForUpdates({ forceCheck: Boolean(params?.forceCheck) });
+      },
+      getPendingUpdate: () => {
+        const meta = defaultAutoUpdater.getPendingUpdateMeta();
+        if (!meta) return null;
+        return {
+          version: meta.version,
+          releaseName: meta.releaseName,
+          releaseNotes: meta.releaseNotes,
+          publishedAt: meta.publishedAt,
+          htmlUrl: meta.htmlUrl,
+          status: meta.status,
+          errorMessage: meta.errorMessage,
+        };
+      },
+      installUpdateAndRelaunch: () => {
+        return defaultAutoUpdater.installUpdateAndRelaunch();
+      },
+      dismissUpdate: () => {
+        defaultAutoUpdater.dismissUpdate();
+      },
+      getAppVersion: () => {
+        return {
+          version: defaultAutoUpdater.getVersion(),
+          name: "Synctable",
+        };
+      },
       minimizeWindow: () => {
+
         win.minimize();
       },
       toggleMaximizeWindow: () => {
@@ -310,8 +343,32 @@ function monitorBrowserFileChanges() {
 monitorMacLifecycle();
 monitorBrowserFileChanges();
 
+// Wire AutoUpdater callbacks to broadcast updates to the webview
+defaultAutoUpdater.setCallbacks({
+  onUpdateAvailable: (info) => {
+    try {
+      const mainView = BrowserView.getById(win.webviewId);
+      mainView?.rpc?.send.updateAvailable(info);
+    } catch (err) {
+      console.warn("[AutoUpdater] Could not emit updateAvailable to webview:", err);
+    }
+  },
+  onStatusChanged: (info) => {
+    try {
+      const mainView = BrowserView.getById(win.webviewId);
+      mainView?.rpc?.send.updateStatusChanged(info);
+    } catch (err) {
+      console.warn("[AutoUpdater] Could not emit updateStatusChanged to webview:", err);
+    }
+  },
+});
+
+// Start checking on startup and every 1 hour
+defaultAutoUpdater.startPeriodicCheck();
+
 setInterval(() => {
   runAutoSync("periodic");
 }, SYNC_INTERVAL_MS);
 
 console.log("Synctable Electrobun main process initialized.");
+
