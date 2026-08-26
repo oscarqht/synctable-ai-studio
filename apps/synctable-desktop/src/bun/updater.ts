@@ -439,6 +439,7 @@ export class AutoUpdater {
         mkdirSync(this.updatesDir, { recursive: true });
       }
 
+      // Find matching release asset
       const asset = this.selectAssetForPlatform(release.assets || []);
       if (!asset) {
         throw new Error(`No compatible release asset found for platform ${process.platform}-${process.arch}`);
@@ -464,31 +465,10 @@ export class AutoUpdater {
       }
       mkdirSync(stagedDir, { recursive: true });
 
-      let stagedAppPath = targetFilePath;
+      const stagedAppPath = this.stageDownloadedAsset(asset.name, targetFilePath, stagedDir);
 
-      // Handle macOS decompression
-      if (process.platform === "darwin" && asset.name.endsWith(".tar.zst")) {
-        const decompressedTar = join(this.updatesDir, "latest.tar");
-        const zstdBin = this.findZstdBinary();
-        if (zstdBin && existsSync(zstdBin)) {
-          const decompress = Bun.spawnSync([zstdBin, "decompress", "-i", targetFilePath, "-o", decompressedTar, "--no-timing"]);
-          if (decompress.success) {
-            // Extract tar into staged directory
-            Bun.spawnSync(["tar", "-xf", decompressedTar, "-C", stagedDir]);
-            if (existsSync(decompressedTar)) {
-              unlinkSync(decompressedTar);
-            }
-          }
-        }
-
-        // Find .app folder inside stagedDir
-        if (existsSync(stagedDir)) {
-          const entries = readdirSync(stagedDir);
-          const appBundle = entries.find((e) => e.endsWith(".app"));
-          if (appBundle) {
-            stagedAppPath = join(stagedDir, appBundle);
-          }
-        }
+      if (!stagedAppPath || !existsSync(stagedAppPath)) {
+        throw new Error(`Failed to extract a valid application from ${asset.name}`);
       }
 
       const pendingMeta: PendingUpdateMeta = {
@@ -513,7 +493,7 @@ export class AutoUpdater {
         this.notifyUpdateAvailable(info);
       }
 
-      console.log(`[AutoUpdater] Update v${version} successfully downloaded and staged.`);
+      console.log(`[AutoUpdater] Update v${version} successfully downloaded and staged at ${stagedAppPath}.`);
     } catch (err: any) {
       console.error("[AutoUpdater] Download/stage error:", err);
       info.status = "error";
@@ -521,6 +501,131 @@ export class AutoUpdater {
       this.notifyStatusChanged(info);
     } finally {
       this.isDownloading = false;
+    }
+  }
+
+  /**
+   * Decompress/mount and stage downloaded archive (.dmg, .zip, .tar.zst) into stagedDir.
+   * Returns the path to the extracted application bundle.
+   */
+  public stageDownloadedAsset(assetName: string, targetFilePath: string, stagedDir: string): string | null {
+    if (process.platform === "darwin") {
+      // 1. DMG Package
+      if (assetName.endsWith(".dmg")) {
+        const mountDir = join(this.updatesDir, "dmg-mount");
+        try {
+          if (existsSync(mountDir)) {
+            Bun.spawnSync(["hdiutil", "detach", mountDir, "-force"]);
+            rmSync(mountDir, { recursive: true, force: true });
+          }
+          mkdirSync(mountDir, { recursive: true });
+
+          const attachRes = Bun.spawnSync([
+            "hdiutil",
+            "attach",
+            targetFilePath,
+            "-nobrowse",
+            "-readonly",
+            "-mountpoint",
+            mountDir,
+          ]);
+
+          if (attachRes.exitCode === 0) {
+            const entries = readdirSync(mountDir);
+            const appBundle = entries.find((e) => e.endsWith(".app"));
+            if (appBundle) {
+              Bun.spawnSync(["cp", "-R", join(mountDir, appBundle), join(stagedDir, appBundle)]);
+            }
+          }
+        } catch (err) {
+          console.warn("[AutoUpdater] Error extracting from DMG:", err);
+        } finally {
+          try {
+            Bun.spawnSync(["hdiutil", "detach", mountDir, "-force"]);
+            if (existsSync(mountDir)) {
+              rmSync(mountDir, { recursive: true, force: true });
+            }
+          } catch {
+            // Ignore unmount cleanup errors
+          }
+        }
+      }
+
+      // 2. ZIP Archive
+      else if (assetName.endsWith(".zip")) {
+        try {
+          Bun.spawnSync(["unzip", "-q", "-o", targetFilePath, "-d", stagedDir]);
+        } catch (err) {
+          console.warn("[AutoUpdater] Error extracting ZIP:", err);
+        }
+      }
+
+      // 3. TAR.ZST Archive
+      else if (assetName.endsWith(".tar.zst")) {
+        const decompressedTar = join(this.updatesDir, "latest.tar");
+        const zstdBin = this.findZstdBinary();
+        if (zstdBin && existsSync(zstdBin)) {
+          const decompress = Bun.spawnSync([zstdBin, "decompress", "-i", targetFilePath, "-o", decompressedTar, "--no-timing"]);
+          if (decompress.success) {
+            Bun.spawnSync(["tar", "-xf", decompressedTar, "-C", stagedDir]);
+            if (existsSync(decompressedTar)) {
+              unlinkSync(decompressedTar);
+            }
+          }
+        } else {
+          // Fallback to system tar / zstd if available
+          try {
+            Bun.spawnSync(["tar", "--zstd", "-xf", targetFilePath, "-C", stagedDir]);
+          } catch {
+            // Fallback
+          }
+        }
+      }
+
+      // Find .app folder inside stagedDir
+      if (existsSync(stagedDir)) {
+        const entries = readdirSync(stagedDir);
+        const appBundle = entries.find((e) => e.endsWith(".app"));
+        if (appBundle) {
+          const fullAppPath = join(stagedDir, appBundle);
+          // Verify bundle integrity
+          if (existsSync(join(fullAppPath, "Contents", "MacOS")) || existsSync(join(fullAppPath, "Contents", "Info.plist"))) {
+            return fullAppPath;
+          }
+        }
+      }
+
+      return null;
+    } else if (process.platform === "win32") {
+      if (assetName.endsWith(".zip") || assetName.endsWith(".tar.zst")) {
+        // Extract zip to stagedDir
+        try {
+          Bun.spawnSync(["tar", "-xf", targetFilePath, "-C", stagedDir]);
+          return stagedDir;
+        } catch {
+          return targetFilePath;
+        }
+      }
+      return targetFilePath;
+    } else {
+      // Linux
+      if (assetName.endsWith(".tar.gz") || assetName.endsWith(".tar.zst")) {
+        try {
+          Bun.spawnSync(["tar", "-xf", targetFilePath, "-C", stagedDir]);
+          return stagedDir;
+        } catch {
+          return targetFilePath;
+        }
+      }
+      if (assetName.endsWith(".AppImage")) {
+        try {
+          Bun.spawnSync(["chmod", "+x", targetFilePath]);
+        } catch {
+          // Ignore
+        }
+        return targetFilePath;
+      }
+      return targetFilePath;
     }
   }
 
@@ -546,6 +651,22 @@ export class AutoUpdater {
   }
 
   /**
+   * Safely quit the running Electrobun or Bun application.
+   */
+  public quitApp(exitCode = 0): void {
+    try {
+      const { Utils } = require("electrobun/bun");
+      if (Utils?.quit) {
+        Utils.quit();
+        return;
+      }
+    } catch {
+      // Fallback if electrobun Utils is not available
+    }
+    process.exit(exitCode);
+  }
+
+  /**
    * Quit and relaunch to apply the update.
    */
   public installUpdateAndRelaunch(): { success: boolean; message?: string } {
@@ -554,52 +675,107 @@ export class AutoUpdater {
     }
 
     const meta = this.getPendingUpdateMeta();
-    if (!meta || meta.status !== "ready_to_install") {
+    if (!meta || meta.status !== "ready_to_install" || !meta.stagedAppPath || !existsSync(meta.stagedAppPath)) {
       return { success: false, message: "No update is ready to install." };
     }
 
     console.log(`[AutoUpdater] Initiating restart to install v${meta.version}...`);
 
     const pid = process.pid;
-    let runningAppBundlePath: string;
+    const stagedApp = meta.stagedAppPath;
+    const stagedDir = join(this.updatesDir, "staged");
+    const metaPath = join(this.updatesDir, "pending-update.json");
 
     if (process.platform === "darwin") {
-      // In macOS app bundle, execPath is at Contents/MacOS/launcher
-      runningAppBundlePath = resolve(dirname(process.execPath), "..", "..");
+      const runningAppBundlePath = resolve(dirname(process.execPath), "..", "..");
       if (!runningAppBundlePath.endsWith(".app")) {
-        // Fallback for dev mode
-        runningAppBundlePath = process.cwd();
+        return { success: false, message: "Cannot replace application when not running from .app bundle." };
       }
 
-      // Detached script that waits for current process to quit and launches the app
-      Bun.spawn(
-        [
-          "sh",
-          "-c",
-          `while kill -0 ${pid} 2>/dev/null; do sleep 0.3; done; sleep 0.5; open "${runningAppBundlePath}"`,
-        ],
-        {
+      const updateScriptPath = join(this.updatesDir, "apply-update.sh");
+      const scriptContent = `#!/bin/sh
+# Wait for the current running process and helpers to exit
+while kill -0 ${pid} 2>/dev/null; do
+  sleep 0.2
+done
+sleep 0.3
+
+# Atomically replace old application bundle with staged app bundle
+rm -rf "${runningAppBundlePath}"
+cp -R "${stagedApp}" "${runningAppBundlePath}"
+
+# Fix permissions and remove macOS quarantine flag
+chmod -R +x "${runningAppBundlePath}/Contents/MacOS" 2>/dev/null || true
+xattr -r -d com.apple.quarantine "${runningAppBundlePath}" 2>/dev/null || true
+
+# Clean up staging directory and metadata
+rm -rf "${stagedDir}" "${metaPath}" "${updateScriptPath}" 2>/dev/null || true
+
+# Launch the updated app
+open "${runningAppBundlePath}"
+`;
+
+      try {
+        writeFileSync(updateScriptPath, scriptContent, { mode: 0o755 });
+        Bun.spawn(["sh", updateScriptPath], {
           detached: true,
           stdio: ["ignore", "ignore", "ignore"],
-        }
-      );
+        });
+      } catch (err: any) {
+        console.error("[AutoUpdater] Failed to write/launch update script:", err);
+        return { success: false, message: err?.message || String(err) };
+      }
     } else if (process.platform === "win32") {
+      const parentDir = dirname(dirname(process.execPath));
       const launcherPath = join(dirname(process.execPath), "launcher.exe");
-      Bun.spawn(["cmd", "/c", `timeout /t 2 >nul & start "" "${launcherPath}"`], {
-        detached: true,
-        stdio: ["ignore", "ignore", "ignore"],
-      });
+      const updateScriptPath = join(this.updatesDir, "apply-update.bat");
+
+      const scriptContent = `@echo off
+:waitloop
+tasklist /FI "PID eq ${pid}" 2>NUL | find /I "${pid}">NUL && (timeout /t 1 /nobreak >nul & goto waitloop)
+timeout /t 1 /nobreak >nul
+if exist "${meta.downloadedAssetPath}" (
+  start "" "${meta.downloadedAssetPath}"
+) else (
+  start "" "${launcherPath}"
+)
+del "%~f0" 2>nul
+`;
+      try {
+        writeFileSync(updateScriptPath, scriptContent, "utf8");
+        Bun.spawn(["cmd", "/c", updateScriptPath], {
+          detached: true,
+          stdio: ["ignore", "ignore", "ignore"],
+        });
+      } catch (err: any) {
+        return { success: false, message: err?.message || String(err) };
+      }
     } else {
+      // Linux
       const launcherPath = join(dirname(process.execPath), "launcher");
-      Bun.spawn(["sh", "-c", `sleep 1 && "${launcherPath}" &`], {
-        detached: true,
-        stdio: ["ignore", "ignore", "ignore"],
-      });
+      const updateScriptPath = join(this.updatesDir, "apply-update.sh");
+      const scriptContent = `#!/bin/sh
+while kill -0 ${pid} 2>/dev/null; do
+  sleep 0.2
+done
+sleep 0.5
+rm -rf "${stagedDir}" "${metaPath}" "${updateScriptPath}" 2>/dev/null || true
+"${launcherPath}" &
+`;
+      try {
+        writeFileSync(updateScriptPath, scriptContent, { mode: 0o755 });
+        Bun.spawn(["sh", updateScriptPath], {
+          detached: true,
+          stdio: ["ignore", "ignore", "ignore"],
+        });
+      } catch (err: any) {
+        return { success: false, message: err?.message || String(err) };
+      }
     }
 
     // Gracefully exit current process
     setTimeout(() => {
-      process.exit(0);
+      this.quitApp(0);
     }, 100);
 
     return { success: true };
@@ -665,7 +841,7 @@ export class AutoUpdater {
             stdio: ["ignore", "ignore", "ignore"],
           });
 
-          process.exit(0);
+          this.quitApp(0);
           return true;
         } catch (err) {
           console.error("[AutoUpdater] Failed to apply update:", err);
@@ -678,3 +854,4 @@ export class AutoUpdater {
 }
 
 export const defaultAutoUpdater = new AutoUpdater();
+

@@ -176,4 +176,28 @@ describe("AutoUpdater", () => {
       expect(result.updateAvailable).toBe(false);
     });
   });
+
+  describe("stageDownloadedAsset", () => {
+    it("verifies staged bundle structure and rejects invalid extractions", () => {
+      const updater = new AutoUpdater({ updatesDir: testUpdatesDir, currentVersion: "0.3.0", isDev: false });
+      const stagedDir = join(testUpdatesDir, "staged-test");
+      mkdirSync(stagedDir, { recursive: true });
+
+      // Non-existent or dummy asset without valid .app structure
+      const stagedPath = updater.stageDownloadedAsset("invalid-package.tar.zst", join(testUpdatesDir, "dummy.tar.zst"), stagedDir);
+      expect(stagedPath).toBeNull();
+    });
+
+    it("accepts valid staged .app bundle structure", () => {
+      const updater = new AutoUpdater({ updatesDir: testUpdatesDir, currentVersion: "0.3.0", isDev: false });
+      const stagedDir = join(testUpdatesDir, "staged-valid");
+      const mockAppBundle = join(stagedDir, "Synctable.app", "Contents", "MacOS");
+      mkdirSync(mockAppBundle, { recursive: true });
+
+      const stagedPath = updater.stageDownloadedAsset("dummy.tar.zst", join(testUpdatesDir, "dummy.tar.zst"), stagedDir);
+      if (process.platform === "darwin") {
+        expect(stagedPath).toBe(join(stagedDir, "Synctable.app"));
+      }
+    });
+  });
 });

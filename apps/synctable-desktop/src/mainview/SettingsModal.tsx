@@ -234,22 +234,25 @@ export function SettingsModal({
                 <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-primary-container/40 border border-primary/20">
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="material-symbols-outlined text-primary text-[18px] shrink-0">
-                      rocket_launch
+                      {foundUpdateInfo.status === "downloading" ? "downloading" : "rocket_launch"}
                     </span>
                     <div className="text-[12px] truncate">
-                      <span className="font-bold text-on-surface">v{foundUpdateInfo.version} ready</span>
+                      <span className="font-bold text-on-surface">
+                        v{foundUpdateInfo.version} {foundUpdateInfo.status === "downloading" ? "(downloading...)" : "ready"}
+                      </span>
                     </div>
                   </div>
                   {onInstallUpdate && (
                     <button
                       type="button"
+                      disabled={foundUpdateInfo.status === "downloading"}
                       onClick={() => {
                         onInstallUpdate();
                         onClose();
                       }}
-                      className="px-3 py-1 rounded-full bg-primary text-on-primary font-semibold text-[11px] hover:bg-surface-tint transition-colors cursor-pointer shrink-0"
+                      className="px-3 py-1 rounded-full bg-primary text-on-primary font-semibold text-[11px] hover:bg-surface-tint transition-colors cursor-pointer shrink-0 disabled:opacity-50"
                     >
-                      Install &amp; Relaunch
+                      {foundUpdateInfo.status === "downloading" ? "Downloading..." : "Install & Relaunch"}
                     </button>
                   )}
                 </div>

@@ -174,9 +174,21 @@ export function App({ rpc }: AppProps) {
 
   // Handle Install & Relaunch
   const handleInstallUpdateAndRelaunch = async () => {
+    if (installingUpdate) return;
     setInstallingUpdate(true);
     try {
-      await rpc.request.installUpdateAndRelaunch();
+      // If update is available but not ready to install, trigger download/check
+      if (updateInfo && updateInfo.status !== "ready_to_install") {
+        const checkRes = await rpc.request.checkForUpdates({ forceCheck: true });
+        if (checkRes?.updateInfo) {
+          setUpdateInfo(checkRes.updateInfo);
+        }
+      }
+      const res = await rpc.request.installUpdateAndRelaunch();
+      if (!res?.success) {
+        console.warn("[AutoUpdater] Install & Relaunch:", res?.message);
+        setInstallingUpdate(false);
+      }
     } catch (err) {
       console.error("Install & Relaunch failed:", err);
       setInstallingUpdate(false);
