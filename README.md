@@ -169,7 +169,12 @@ bun run build:web
 ## 🚀 CI/CD & Releases
 
 The GitHub Actions workflow [`.github/workflows/release.yml`](.github/workflows/release.yml) automatically builds macOS and Windows desktop packages concurrently on release / main push:
-- **macOS (`macos-latest`)**: Produces `.dmg` installers, compressed tarballs, and update metadata.
+- **macOS (`macos-latest`)**: Produces `.dmg` installers, compressed tarballs, and update metadata (automatically ad-hoc signed and verified).
+  > **Note for macOS users**: When installing from GitHub releases on macOS, if Gatekeeper warns that the app cannot be opened because it is from an unidentified developer or displays a quarantine prompt, run:
+  > ```bash
+  > xattr -cr /Applications/Synctable.app
+  > ```
+  > Or open **System Settings > Privacy & Security** and click **Open Anyway**.
 - **Windows (`windows-latest`)**: Produces Windows Setup installer (`Synctable-Setup.exe` and `Synctable-Setup.zip`), archives, and metadata, published both as GitHub Release assets and downloadable GitHub Actions workflow artifacts (`windows-desktop-installer`).
 
 ---
