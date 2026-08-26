@@ -2,8 +2,8 @@ name: Build & Release Desktop Apps
 
 on:
   push:
-    branches:
-      - main
+    tags:
+      - 'v*'
   workflow_dispatch:
 
 permissions:
@@ -106,10 +106,13 @@ jobs:
       - name: Prepare Release Info
         id: release_info
         run: |
-          VERSION=$(node -p "require('./apps/synctable-desktop/package.json').version")
-          SHORT_SHA=$(git rev-parse --short HEAD)
-          TAG_NAME="v${VERSION}-${SHORT_SHA}"
-          RELEASE_TITLE="Synctable Desktop v${VERSION} (${SHORT_SHA})"
+          if [ -n "${{ github.ref_name }}" ] && [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            TAG_NAME="${{ github.ref_name }}"
+          else
+            VERSION=$(node -p "require('./apps/synctable-desktop/package.json').version")
+            TAG_NAME="v${VERSION}"
+          fi
+          RELEASE_TITLE="Synctable Desktop ${TAG_NAME}"
           echo "tag_name=${TAG_NAME}" >> "$GITHUB_OUTPUT"
           echo "release_title=${RELEASE_TITLE}" >> "$GITHUB_OUTPUT"
 

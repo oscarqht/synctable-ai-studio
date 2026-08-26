@@ -1,0 +1,43 @@
+name: Bump Version & Tag
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  bump-version:
+    name: Bump Minor Version & Create Tag
+    runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, 'chore(release):')"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Bump minor version
+        id: bump
+        run: bun run ./scripts/bump-version.ts
+
+      - name: Commit and push version bump & tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json apps/*/package.json packages/*/package.json apps/synctable-desktop/electrobun.config.ts
+          git commit -m "chore(release): bump version to ${{ steps.bump.outputs.tag_name }} [skip ci]"
+          git tag "${{ steps.bump.outputs.tag_name }}"
+          git push origin main
+          git push origin "${{ steps.bump.outputs.tag_name }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
