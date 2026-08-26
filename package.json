@@ -19,6 +19,8 @@
     "package:desktop": "bun run --cwd ./apps/synctable-desktop package",
     "package:mac": "bun run --cwd ./apps/synctable-desktop package:mac",
     "package:win": "bun run --cwd ./apps/synctable-desktop package:win",
+    "pack:desktop": "bun run --cwd ./apps/synctable-desktop pack:npm",
+    "run:desktop": "node ./apps/synctable-desktop/bin/cli.mjs",
     "start": "bun run --cwd ./apps/synctable-web start",
     "start:web": "bun run --cwd ./apps/synctable-web start",
     "start:desktop": "bun run --cwd ./apps/synctable-desktop start",
