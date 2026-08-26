@@ -299,5 +299,54 @@ describe("parseZenSessionstore", () => {
       { title: "dev (3002)", url: "http://localhost:3002/app" },
     ]);
   });
+
+  test("maintains correct visual order when a split view follows sibling tabs inside a folder", () => {
+    const nodes = parseZenSessionData({
+      windows: [{
+        spaces: [{ uuid: "space-ai", name: "AI" }],
+        folders: [
+          { id: "folder-lab", name: "Lab", workspaceId: "space-ai", parentId: null, splitViewGroup: false },
+          { id: "split-lab-figma-dev", name: "", parentId: "folder-lab", workspaceId: null, splitViewGroup: true },
+        ],
+        tabs: [
+          { entries: [{ url: "https://trello.example/general" }], zenWorkspace: "space-ai", zenStaticLabel: "general" }, // idx 0
+          { entries: [{ url: "https://trello.example/shipyard" }], zenWorkspace: "space-ai", zenStaticLabel: "shipyard" }, // idx 1
+          { entries: [{ url: "about:blank" }], zenIsEmpty: true, groupId: "folder-lab", zenWorkspace: "space-ai" }, // idx 2 (folder anchor)
+          { entries: [{ url: "https://trello.example/todo" }], groupId: "folder-lab", zenWorkspace: "space-ai", zenStaticLabel: "todo" }, // idx 3
+          { entries: [{ url: "https://example.com/api" }], groupId: "folder-lab", zenWorkspace: "space-ai", zenStaticLabel: "api" }, // idx 4
+          { entries: [{ url: "https://example.com/design" }], groupId: "folder-lab", zenWorkspace: "space-ai", zenStaticLabel: "design" }, // idx 5
+          { entries: [{ url: "https://figma.com/design" }], groupId: "split-lab-figma-dev", zenWorkspace: "space-ai", zenStaticLabel: "figma" }, // idx 6
+          { entries: [{ url: "http://localhost:3002/lab" }], groupId: "split-lab-figma-dev", zenWorkspace: "space-ai", zenStaticLabel: "dev (3002)" }, // idx 7
+          { entries: [{ url: "http://localhost:3100" }], zenWorkspace: "space-ai", zenStaticLabel: "changes" }, // idx 8
+        ],
+      }],
+    }, {
+      osType: "macos",
+      profileName: "Default",
+      snapshotTime: "2026-08-26T00:00:00.000Z",
+    });
+
+    const folderLab = nodes.find((n) => n.id.includes("folder-lab"));
+    expect(folderLab).toBeDefined();
+
+    // Children of folder Lab sorted by sort_order
+    const labChildren = nodes.filter((n) => n.parent_id === folderLab?.id).sort((a, b) => a.sort_order - b.sort_order);
+    expect(labChildren.map((n) => n.title)).toEqual([
+      "todo",
+      "api",
+      "design",
+      "Split View",
+    ]);
+
+    const splitNode = labChildren.find((n) => n.node_type === "split_view");
+    expect(splitNode?.sort_order).toBe(6);
+
+    const splitMembers = nodes.filter((n) => n.parent_id === splitNode?.id).sort((a, b) => a.sort_order - b.sort_order);
+    expect(splitMembers.map((n) => n.title)).toEqual([
+      "figma",
+      "dev (3002)",
+    ]);
+  });
 });
+
 

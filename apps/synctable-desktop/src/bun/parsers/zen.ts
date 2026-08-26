@@ -278,12 +278,53 @@ export function parseZenSessionData(data: any, options: Omit<ZenParserOptions, "
         folderIds.set(String(folder.id), `zen-${profileId}-win-${winIdx}-folder-${encodeURIComponent(String(folder.id))}`);
       }
     });
+
+    const getFolderSubtreeIds = (targetId: string): Set<string> => {
+      const subtree = new Set<string>([targetId]);
+      let added = true;
+      while (added) {
+        added = false;
+        for (const f of folders) {
+          if (f?.id != null && f.parentId != null && subtree.has(String(f.parentId)) && !subtree.has(String(f.id))) {
+            subtree.add(String(f.id));
+            added = true;
+          }
+        }
+      }
+      return subtree;
+    };
+
+    const findFolderSortOrder = (folder: any, folderIdx: number): number => {
+      const explicitOrder = folderSortOrders.get(String(folder?.id));
+      if (explicitOrder !== undefined) return explicitOrder;
+
+      const subtreeIds = getFolderSubtreeIds(String(folder?.id));
+      const firstTabIdx = tabs.findIndex((tab: any) =>
+        tab && tab.groupId != null && subtreeIds.has(String(tab.groupId))
+      );
+
+      if (firstTabIdx !== -1) return firstTabIdx;
+      return tabs.length + folderIdx;
+    };
+
+    const findFolderWorkspace = (folder: any): string | null => {
+      if (folder?.workspaceId) return String(folder.workspaceId);
+      const subtreeIds = getFolderSubtreeIds(String(folder?.id));
+      for (const tab of tabs) {
+        if (!tab?.zenIsEmpty && tab?.groupId != null && subtreeIds.has(String(tab.groupId)) && tab.zenWorkspace) {
+          return String(tab.zenWorkspace);
+        }
+      }
+      return null;
+    };
+
     folders.forEach((folder: any, folderIdx: number) => {
       const folderId = folderIds.get(String(folder?.id));
       if (!folderId) return;
+      const folderWorkspace = folder?.workspaceId || findFolderWorkspace(folder);
       const parentId = folder?.parentId != null
-        ? folderIds.get(String(folder.parentId)) || getWorkspaceId(folder.workspaceId)
-        : getWorkspaceId(folder.workspaceId);
+        ? folderIds.get(String(folder.parentId)) || getWorkspaceId(folderWorkspace)
+        : getWorkspaceId(folderWorkspace);
       const { theme_color, theme_colors, icon } = extractZenSpaceTheme(folder);
       nodes.push({
         id: folderId,
@@ -296,7 +337,7 @@ export function parseZenSessionData(data: any, options: Omit<ZenParserOptions, "
         title: folder?.name || (folder?.splitViewGroup ? "Split View" : "Folder"),
         url: null,
         parent_id: parentId,
-        sort_order: folderSortOrders.get(String(folder.id)) ?? folderIdx,
+        sort_order: findFolderSortOrder(folder, folderIdx),
         snapshot_time: snapshotTime,
         lastUpdateTime: snapshotTime,
         theme_color,
