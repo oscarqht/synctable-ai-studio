@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, unlinkSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
+import { Utils } from "electrobun/bun";
 import type { UpdateCheckResult, UpdateInfo } from "../shared/types";
 
 export interface GitHubReleaseAsset {
@@ -655,8 +656,7 @@ export class AutoUpdater {
    */
   public quitApp(exitCode = 0): void {
     try {
-      const { Utils } = require("electrobun/bun");
-      if (Utils?.quit) {
+      if (typeof Utils !== "undefined" && Utils?.quit) {
         Utils.quit();
         return;
       }
