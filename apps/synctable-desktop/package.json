@@ -1,6 +1,6 @@
 {
   "name": "synctable-desktop",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Cross-browser tree backup and workspace synchronization utility (Desktop App)",
   "type": "module",
   "scripts": {
