@@ -23,6 +23,7 @@
     "start:web": "bun run --cwd ./apps/synctable-web start",
     "start:desktop": "bun run --cwd ./apps/synctable-desktop start",
     "test": "bun test",
+    "version:bump": "bun run ./scripts/bump-version.ts",
     "lint": "bun run --cwd ./apps/synctable-web lint",
     "typecheck": "bun run --cwd ./apps/synctable-web typecheck"
   }

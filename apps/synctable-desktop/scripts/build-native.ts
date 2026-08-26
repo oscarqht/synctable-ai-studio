@@ -63,6 +63,9 @@ if (p === "darwin") {
       console.warn("[build-native] Warning: Failed to build win-live-reader.exe with csc:", result.exitCode);
     }
   }
+
+  const { prepareWindowsBinaries } = await import("./generate-win-icons");
+  await prepareWindowsBinaries();
 }
 
 

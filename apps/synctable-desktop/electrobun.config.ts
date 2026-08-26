@@ -56,7 +56,7 @@ export default {
       icon: "../../docs/logo.png",
     },
     win: {
-      icon: "../../docs/logo.png",
+      icon: "icon.ico",
     },
   },
 } satisfies ElectrobunConfig;
