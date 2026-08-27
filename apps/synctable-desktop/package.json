@@ -23,8 +23,8 @@
     "typecheck": "tsc --noEmit"
   },
   "bin": {
-    "synctable": "./bin/cli.mjs",
-    "synctable-desktop": "./bin/cli.mjs"
+    "synctable": "bin/cli.mjs",
+    "synctable-desktop": "bin/cli.mjs"
   },
   "files": [
     "bin",
