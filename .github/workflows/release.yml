@@ -175,6 +175,9 @@ jobs:
         with:
           node-version: '20.x'
 
+      - name: Upgrade npm to latest
+        run: npm install -g npm@latest
+
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
@@ -195,7 +198,8 @@ jobs:
           else
             echo "Publishing to NPM using Trusted Publishing (OIDC)..."
           fi
-          npm publish --access public --provenance
+          npm publish --access public --provenance --registry https://registry.npmjs.org/
+
 
 
 

@@ -3,6 +3,13 @@
   "version": "0.11.0",
   "description": "Cross-browser tree backup and workspace synchronization utility (Desktop App)",
   "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/oscarqht/synctable-ai-studio.git",
+    "directory": "apps/synctable-desktop"
+  },
+  "homepage": "https://github.com/oscarqht/synctable-ai-studio",
   "scripts": {
     "build:native": "bun run ./scripts/build-native.ts",
     "build:css": "tailwindcss -i ./src/mainview/tailwind.css -o ./src/mainview/style.css --minify",
