@@ -160,6 +160,9 @@ jobs:
     name: Publish to NPM Registry
     needs: [build-macos]
     runs-on: macos-latest
+    permissions:
+      contents: read
+      id-token: write
 
     steps:
       - name: Checkout repository
@@ -184,19 +187,11 @@ jobs:
           name: npm-dist-artifact
           path: apps/synctable-desktop/dist
 
-      - name: Publish to NPM
-        if: env.NPM_TOKEN != ''
+      - name: Publish to NPM (Trusted Publishing / Token)
         run: |
           cd apps/synctable-desktop
-          npm publish --access public --provenance=false
+          npm publish --access public --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Notice if NPM_TOKEN is missing
-        if: env.NPM_TOKEN == ''
-        run: |
-          echo "::warning ::NPM_TOKEN secret is not set in GitHub repository secrets. Skipping npm publish."
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
