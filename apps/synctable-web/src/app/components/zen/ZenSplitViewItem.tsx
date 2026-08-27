@@ -172,7 +172,7 @@ export function ZenSplitViewItem({
         className={`${
           isSingleColumn || alwaysShowActions
             ? "flex"
-            : "flex md:hidden md:group-hover/tab:flex"
+            : "flex md:hidden md:group-hover/tab:flex group-focus-within/tab:flex"
         } items-center gap-1 shrink-0 -my-1`}
       >
         <button

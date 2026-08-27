@@ -136,9 +136,9 @@ export function ZenTabItem({
         <div
           className={`${
             isSingleColumn || alwaysShowActions
-              ? "opacity-100"
-              : "opacity-0 md:group-hover/tab:opacity-100 group-focus-within/tab:opacity-100"
-          } flex items-center gap-1 shrink-0 transition-opacity duration-150`}
+              ? "flex"
+              : "flex md:hidden md:group-hover/tab:flex group-focus-within/tab:flex"
+          } items-center gap-1 shrink-0`}
         >
           <span
             onClick={handleCopyUrl}

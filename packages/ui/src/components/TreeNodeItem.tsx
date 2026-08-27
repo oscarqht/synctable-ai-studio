@@ -465,7 +465,7 @@ export function TreeNodeItem({
             className={`${
               isSingleColumn || alwaysShowActions
                 ? "flex"
-                : "flex md:hidden md:group-hover/node:flex"
+                : "flex md:hidden md:group-hover/node:flex group-focus-within/node:flex"
             } items-center gap-1 shrink-0 ml-2 -my-1`}
           >
             <button

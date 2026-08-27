@@ -126,9 +126,9 @@ export function ZenFolderItem({
         <div
           className={`${
             isSingleColumn || alwaysShowActions
-              ? "opacity-100"
-              : "opacity-0 md:group-hover/folder:opacity-100 group-focus-within/folder:opacity-100"
-          } flex items-center gap-1 shrink-0 transition-opacity duration-150`}
+              ? "flex"
+              : "flex md:hidden md:group-hover/folder:flex group-focus-within/folder:flex"
+          } items-center gap-1 shrink-0`}
         >
           <span
             onClick={handleCopyFolder}
