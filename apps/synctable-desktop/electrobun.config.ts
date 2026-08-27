@@ -20,7 +20,7 @@ export default {
   app: {
     name: "Synctable",
     identifier: "com.synctable.app",
-    version: "0.12.0",
+    version: "0.13.0",
     description: "Cross-browser tree backup and workspace synchronization utility",
   },
   build: {
