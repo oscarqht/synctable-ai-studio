@@ -39,6 +39,18 @@ jobs:
           cd apps/synctable-desktop
           bun run package:mac
 
+      - name: Prepare NPM package staging
+        run: |
+          cd apps/synctable-desktop
+          bun run prep:npm
+
+      - name: Upload NPM Dist Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-dist-artifact
+          path: apps/synctable-desktop/dist
+          if-no-files-found: error
+
       - name: Upload macOS Artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -143,3 +155,43 @@ jobs:
             release-artifacts/windows/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish-npm:
+    name: Publish to NPM Registry
+    needs: [build-macos]
+    runs-on: macos-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag_name || github.ref }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Download NPM Dist Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: npm-dist-artifact
+          path: apps/synctable-desktop/dist
+
+      - name: Publish to NPM (Trusted Publishing / Token)
+        run: |
+          cd apps/synctable-desktop
+          npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+

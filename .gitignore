@@ -4,6 +4,8 @@ node_modules/
 # Electrobun Build outputs
 build/
 artifacts/
+dist/
+*.tgz
 
 # Next.js Build outputs
 .next/

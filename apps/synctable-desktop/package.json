@@ -1,5 +1,5 @@
 {
-  "name": "synctable-desktop",
+  "name": "synctable",
   "version": "0.9.0",
   "description": "Cross-browser tree backup and workspace synchronization utility (Desktop App)",
   "type": "module",
@@ -17,27 +17,36 @@
     "package:mac": "bun run build:native && bun run build:css && electrobun build --env=stable && bun run postpackage:mac",
     "package:win": "bun run build:native && bun run build:css && electrobun build --env=stable && bun run postpackage:win",
     "package:desktop": "bun run build:native && bun run build:css && electrobun build --env=stable && bun run postpackage:win && bun run postpackage:mac",
+    "prep:npm": "bun run ./scripts/prepare-npm-package.ts",
+    "pack:npm": "bun run prep:npm && npm pack",
     "test": "bun test",
     "typecheck": "tsc --noEmit"
   },
-  "dependencies": {
-    "@synctable/ui": "*",
-    "@types/lz4js": "^0.2.2",
-    "clsx": "^2.1.1",
-    "electrobun": "^1.18.1",
-    "lucide-react": "^0.400.0",
-    "lz4js": "^0.2.0",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "tailwind-merge": "^2.4.0"
+  "bin": {
+    "synctable": "./bin/cli.mjs",
+    "synctable-desktop": "./bin/cli.mjs"
   },
+  "files": [
+    "bin",
+    "dist"
+  ],
+  "dependencies": {},
   "devDependencies": {
+    "@synctable/ui": "*",
     "@types/bun": "^1.3.14",
+    "@types/lz4js": "^0.2.2",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "@types/three": "^0.185.4",
     "autoprefixer": "^10.4.19",
+    "clsx": "^2.1.1",
+    "electrobun": "^1.18.1",
+    "lucide-react": "^0.400.0",
+    "lz4js": "^0.2.0",
     "postcss": "^8.4.39",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tailwind-merge": "^2.4.0",
     "tailwindcss": "^3.4.6",
     "typescript": "^5.5.3"
   }
