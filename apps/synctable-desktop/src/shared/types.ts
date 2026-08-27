@@ -161,6 +161,10 @@ export interface SynctableRPCSchema extends ElectrobunRPCSchema {
         params: void;
         response: UpdateInfo | null;
       };
+      downloadUpdate: {
+        params: void;
+        response: { success: boolean; message?: string; updateInfo?: UpdateInfo };
+      };
       installUpdateAndRelaunch: {
         params: void;
         response: { success: boolean; message?: string };

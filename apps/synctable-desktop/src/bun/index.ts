@@ -124,6 +124,9 @@ const rpc = defineElectrobunRPC<SynctableRPCSchema>("bun", {
           errorMessage: meta.errorMessage,
         };
       },
+      downloadUpdate: async () => {
+        return await defaultAutoUpdater.downloadUpdate();
+      },
       installUpdateAndRelaunch: () => {
         return defaultAutoUpdater.installUpdateAndRelaunch();
       },

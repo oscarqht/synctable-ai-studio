@@ -44,6 +44,7 @@ export class AutoUpdater {
   private intervalTimer?: Timer;
   private isChecking = false;
   private isDownloading = false;
+  private activeDownloadPromise: Promise<boolean> | null = null;
   private isDevOverride?: boolean;
   private dismissedVersion: string | null = null;
   private onUpdateAvailableCallback?: (info: UpdateInfo) => void;
@@ -371,8 +372,27 @@ export class AutoUpdater {
         };
       }
 
+      // If already downloading, report downloading status
+      if (this.isDownloading || this.activeDownloadPromise) {
+        updateInfo.status = "downloading";
+        return {
+          updateAvailable: true,
+          currentVersion: this.currentVersion,
+          latestVersion,
+          updateInfo,
+        };
+      }
+
       // Download and stage the new update in background
-      void this.downloadAndStageRelease(release, latestVersion, updateInfo);
+      this.activeDownloadPromise = this.downloadAndStageRelease(release, latestVersion, updateInfo)
+        .then((res) => {
+          this.activeDownloadPromise = null;
+          return res;
+        })
+        .catch(() => {
+          this.activeDownloadPromise = null;
+          return false;
+        });
 
       return {
         updateAvailable: true,
@@ -400,24 +420,147 @@ export class AutoUpdater {
     const arch = process.arch; // 'arm64', 'x64'
 
     if (os === "darwin") {
-      // Prioritize .tar.zst for seamless direct extraction, then .dmg, then .zip
+      // Prioritize DMG for native macOS mounting & extraction without external dependencies, then ZIP, then tar.zst
+      const dmgArm = assets.find((a) => a.name.includes("arm64") && a.name.endsWith(".dmg"));
+      const dmgAny = assets.find((a) => a.name.endsWith(".dmg"));
+      const zipArm = assets.find((a) => (a.name.includes("arm64") || a.name.includes("mac")) && a.name.endsWith(".zip"));
+      const zipAny = assets.find((a) => a.name.endsWith(".zip"));
       const tarZstArm = assets.find((a) => a.name.includes("arm64") && a.name.endsWith(".tar.zst"));
       const tarZstAny = assets.find((a) => a.name.endsWith(".tar.zst"));
-      const dmg = assets.find((a) => a.name.endsWith(".dmg"));
-      const zip = assets.find((a) => a.name.includes("mac") && a.name.endsWith(".zip"));
 
+      if (arch === "arm64" && dmgArm) return dmgArm;
+      if (dmgAny) return dmgAny;
+      if (arch === "arm64" && zipArm) return zipArm;
+      if (zipAny) return zipAny;
       if (arch === "arm64" && tarZstArm) return tarZstArm;
-      return tarZstAny || dmg || zip || null;
+      return tarZstAny || null;
     } else if (os === "win32") {
-      const setupExe = assets.find((a) => a.name.endsWith(".exe"));
       const setupZip = assets.find((a) => a.name.includes("win") && a.name.endsWith(".zip"));
+      const setupExe = assets.find((a) => a.name.endsWith(".exe"));
       const tarZst = assets.find((a) => a.name.includes("win") && a.name.endsWith(".tar.zst"));
-      return setupExe || setupZip || tarZst || null;
+      return setupZip || setupExe || tarZst || null;
     } else {
-      const tarZst = assets.find((a) => a.name.includes("linux") && a.name.endsWith(".tar.zst"));
       const appImage = assets.find((a) => a.name.endsWith(".AppImage"));
       const tarGz = assets.find((a) => a.name.endsWith(".tar.gz"));
-      return tarZst || appImage || tarGz || null;
+      const tarZst = assets.find((a) => a.name.includes("linux") && a.name.endsWith(".tar.zst"));
+      return appImage || tarGz || tarZst || null;
+    }
+  }
+
+  /**
+   * Triggers download of the latest release (or awaits in-flight download)
+   * and returns the final status.
+   */
+  public async downloadUpdate(): Promise<{ success: boolean; message?: string; updateInfo?: UpdateInfo }> {
+    // If a download is already in progress, await it
+    if (this.activeDownloadPromise) {
+      await this.activeDownloadPromise;
+      const meta = this.getPendingUpdateMeta();
+      if (meta?.status === "ready_to_install") {
+        return {
+          success: true,
+          updateInfo: {
+            version: meta.version,
+            releaseName: meta.releaseName,
+            releaseNotes: meta.releaseNotes,
+            publishedAt: meta.publishedAt,
+            htmlUrl: meta.htmlUrl,
+            status: "ready_to_install",
+          },
+        };
+      }
+      return {
+        success: false,
+        message: meta?.errorMessage || "Update download failed. Please try again.",
+      };
+    }
+
+    // Check if latest update is already downloaded and staged
+    const pendingMeta = this.getPendingUpdateMeta();
+    if (
+      pendingMeta &&
+      pendingMeta.status === "ready_to_install" &&
+      pendingMeta.stagedAppPath &&
+      existsSync(pendingMeta.stagedAppPath) &&
+      AutoUpdater.compareSemver(pendingMeta.version, this.currentVersion) > 0
+    ) {
+      return {
+        success: true,
+        updateInfo: {
+          version: pendingMeta.version,
+          releaseName: pendingMeta.releaseName,
+          releaseNotes: pendingMeta.releaseNotes,
+          publishedAt: pendingMeta.publishedAt,
+          htmlUrl: pendingMeta.htmlUrl,
+          status: "ready_to_install",
+        },
+      };
+    }
+
+    try {
+      const apiUrl = `https://api.github.com/repos/${this.repo}/releases/latest`;
+      console.log(`[AutoUpdater] Fetching release metadata from ${apiUrl}...`);
+
+      const response = await fetch(apiUrl, {
+        headers: {
+          "User-Agent": "Synctable-Desktop",
+          Accept: "application/vnd.github.v3+json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`GitHub API request failed with status ${response.status}: ${response.statusText}`);
+      }
+
+      const release: GitHubReleaseResponse = await response.json();
+      const latestTag = release.tag_name || release.name || "";
+      const latestVersion = latestTag.replace(/^[vV]/, "").trim();
+
+      if (AutoUpdater.compareSemver(latestVersion, this.currentVersion) <= 0) {
+        return {
+          success: false,
+          message: "You are already using the latest version of Synctable.",
+        };
+      }
+
+      const updateInfo: UpdateInfo = {
+        version: latestVersion,
+        releaseName: release.name || `Synctable v${latestVersion}`,
+        releaseNotes: release.body || "A new version of Synctable is available.",
+        publishedAt: release.published_at,
+        htmlUrl: release.html_url,
+        status: "downloading",
+      };
+
+      this.activeDownloadPromise = this.downloadAndStageRelease(release, latestVersion, updateInfo);
+      const success = await this.activeDownloadPromise;
+      this.activeDownloadPromise = null;
+
+      const finalMeta = this.getPendingUpdateMeta();
+      if (success && finalMeta?.status === "ready_to_install") {
+        return {
+          success: true,
+          updateInfo: {
+            version: finalMeta.version,
+            releaseName: finalMeta.releaseName,
+            releaseNotes: finalMeta.releaseNotes,
+            publishedAt: finalMeta.publishedAt,
+            htmlUrl: finalMeta.htmlUrl,
+            status: "ready_to_install",
+          },
+        };
+      } else {
+        return {
+          success: false,
+          message: finalMeta?.errorMessage || "Failed to download and stage update. Please try again.",
+        };
+      }
+    } catch (err: any) {
+      console.error("[AutoUpdater] downloadUpdate error:", err);
+      return {
+        success: false,
+        message: err?.message || String(err),
+      };
     }
   }
 
@@ -428,8 +571,8 @@ export class AutoUpdater {
     release: GitHubReleaseResponse,
     version: string,
     info: UpdateInfo
-  ): Promise<void> {
-    if (this.isDownloading) return;
+  ): Promise<boolean> {
+    if (this.isDownloading) return false;
     this.isDownloading = true;
 
     info.status = "downloading";
@@ -495,11 +638,22 @@ export class AutoUpdater {
       }
 
       console.log(`[AutoUpdater] Update v${version} successfully downloaded and staged at ${stagedAppPath}.`);
+      return true;
     } catch (err: any) {
       console.error("[AutoUpdater] Download/stage error:", err);
       info.status = "error";
       info.errorMessage = err?.message || String(err);
+      this.savePendingUpdateMeta({
+        status: "error",
+        version,
+        releaseName: info.releaseName,
+        releaseNotes: info.releaseNotes,
+        publishedAt: info.publishedAt,
+        htmlUrl: info.htmlUrl,
+        errorMessage: info.errorMessage,
+      });
       this.notifyStatusChanged(info);
+      return false;
     } finally {
       this.isDownloading = false;
     }

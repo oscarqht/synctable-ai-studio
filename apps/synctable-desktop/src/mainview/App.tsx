@@ -172,26 +172,60 @@ export function App({ rpc }: AppProps) {
     }
   };
 
-  // Handle Install & Relaunch
+  // Handle Download or Install & Relaunch
   const handleInstallUpdateAndRelaunch = async () => {
     if (installingUpdate) return;
-    setInstallingUpdate(true);
-    try {
-      // If update is available but not ready to install, trigger download/check
-      if (updateInfo && updateInfo.status !== "ready_to_install") {
-        const checkRes = await rpc.request.checkForUpdates({ forceCheck: true });
-        if (checkRes?.updateInfo) {
-          setUpdateInfo(checkRes.updateInfo);
+
+    // Phase 1: Already downloaded and ready to install -> Relaunch & Apply
+    if (updateInfo?.status === "ready_to_install") {
+      setInstallingUpdate(true);
+      try {
+        const res = await rpc.request.installUpdateAndRelaunch();
+        if (!res?.success) {
+          console.warn("[AutoUpdater] Install & Relaunch:", res?.message);
+          setInstallingUpdate(false);
+          setUpdateInfo((prev) =>
+            prev ? { ...prev, status: "error", errorMessage: res?.message || "Failed to relaunch application." } : null
+          );
         }
-      }
-      const res = await rpc.request.installUpdateAndRelaunch();
-      if (!res?.success) {
-        console.warn("[AutoUpdater] Install & Relaunch:", res?.message);
+      } catch (err: any) {
+        console.error("Install & Relaunch failed:", err);
         setInstallingUpdate(false);
+        setUpdateInfo((prev) =>
+          prev ? { ...prev, status: "error", errorMessage: err?.message || "Failed to relaunch application." } : null
+        );
       }
-    } catch (err) {
-      console.error("Install & Relaunch failed:", err);
-      setInstallingUpdate(false);
+      return;
+    }
+
+    // Phase 2: Needs to be downloaded first
+    setUpdateInfo((prev) => (prev ? { ...prev, status: "downloading", errorMessage: undefined } : null));
+    try {
+      const res = await rpc.request.downloadUpdate();
+      if (res?.success && res.updateInfo) {
+        setUpdateInfo(res.updateInfo);
+      } else {
+        setUpdateInfo((prev) =>
+          prev
+            ? {
+                ...prev,
+                status: "error",
+                errorMessage: res?.message || "Failed to download update. Please try again.",
+              }
+            : null
+        );
+      }
+    } catch (err: any) {
+      console.error("Download update failed:", err);
+      setUpdateInfo((prev) =>
+        prev
+          ? {
+              ...prev,
+              status: "error",
+              errorMessage: err?.message || "Failed to download update. Please try again.",
+            }
+          : null
+      );
     }
   };
 

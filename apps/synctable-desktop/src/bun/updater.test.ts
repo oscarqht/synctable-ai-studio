@@ -200,4 +200,25 @@ describe("AutoUpdater", () => {
       }
     });
   });
+
+  describe("downloadUpdate", () => {
+    it("returns already-ready update if metadata already indicates ready_to_install", async () => {
+      const updater = new AutoUpdater({ updatesDir: testUpdatesDir, currentVersion: "0.3.0", isDev: false });
+      const stagedDir = join(testUpdatesDir, "staged");
+      mkdirSync(join(stagedDir, "Synctable.app", "Contents", "MacOS"), { recursive: true });
+
+      updater.savePendingUpdateMeta({
+        status: "ready_to_install",
+        version: "0.4.0",
+        releaseName: "Synctable Desktop v0.4.0",
+        releaseNotes: "Ready update",
+        stagedAppPath: join(stagedDir, "Synctable.app"),
+      });
+
+      const res = await updater.downloadUpdate();
+      expect(res.success).toBe(true);
+      expect(res.updateInfo?.status).toBe("ready_to_install");
+      expect(res.updateInfo?.version).toBe("0.4.0");
+    });
+  });
 });

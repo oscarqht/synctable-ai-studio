@@ -238,7 +238,12 @@ export function SettingsModal({
                     </span>
                     <div className="text-[12px] truncate">
                       <span className="font-bold text-on-surface">
-                        v{foundUpdateInfo.version} {foundUpdateInfo.status === "downloading" ? "(downloading...)" : "ready"}
+                        v{foundUpdateInfo.version}{" "}
+                        {foundUpdateInfo.status === "downloading"
+                          ? "(downloading...)"
+                          : foundUpdateInfo.status === "ready_to_install"
+                          ? "(ready)"
+                          : "(available)"}
                       </span>
                     </div>
                   </div>
@@ -252,7 +257,11 @@ export function SettingsModal({
                       }}
                       className="px-3 py-1 rounded-full bg-primary text-on-primary font-semibold text-[11px] hover:bg-surface-tint transition-colors cursor-pointer shrink-0 disabled:opacity-50"
                     >
-                      {foundUpdateInfo.status === "downloading" ? "Downloading..." : "Install & Relaunch"}
+                      {foundUpdateInfo.status === "downloading"
+                        ? "Downloading..."
+                        : foundUpdateInfo.status === "ready_to_install"
+                        ? "Install & Relaunch"
+                        : "Download & Install"}
                     </button>
                   )}
                 </div>
