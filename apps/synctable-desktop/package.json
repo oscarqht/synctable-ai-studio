@@ -6,7 +6,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/oscarqht/synctable-ai-studio.git",
+    "url": "git+https://github.com/oscarqht/synctable-ai-studio.git",
     "directory": "apps/synctable-desktop"
   },
   "homepage": "https://github.com/oscarqht/synctable-ai-studio",
